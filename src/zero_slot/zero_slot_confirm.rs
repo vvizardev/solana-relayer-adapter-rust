@@ -29,11 +29,11 @@ impl ZeroSlot {
 
     pub fn ping_endpoints() -> Vec<(&'static str, &'static str)> {
         vec![
-            ("NewYork", "ny.0slot.trade"),
-            ("Frankfurt", "de.0slot.trade"),
-            ("AMS", "ams.0slot.trade"),
-            ("LA", "la.0slot.trade"),
-            ("Tokyo", "jp.0slot.trade"),
+            ("ZeroSlot-NewYork", "ny.0slot.trade"),
+            ("ZeroSlot-Frankfurt", "de.0slot.trade"),
+            ("ZeroSlot-AMS", "ams.0slot.trade"),
+            ("ZeroSlot-LA", "la.0slot.trade"),
+            ("ZeroSlot-Tokyo", "jp.0slot.trade"),
         ]
     }
 
@@ -73,7 +73,7 @@ impl ZeroSlot {
             match result {
                 Ok(_) => {
                     println!(
-                        "{:<12} {:<17} {:>8.3} ms",
+                        "{:<22} {:<17} {:>8.3} ms",
                         name,
                         format!("({})", ip),
                         elapsed.as_secs_f64() * 1000.0
@@ -81,7 +81,7 @@ impl ZeroSlot {
                 }
                 Err(err) => {
                     println!(
-                        "{:<12} {:<17} {}",
+                        "{:<22} {:<17} {}",
                         name,
                         format!("({})", ip),
                         format!("Ping failed: {}", err)

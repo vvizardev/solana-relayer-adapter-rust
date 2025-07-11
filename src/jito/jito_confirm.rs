@@ -39,14 +39,14 @@ impl Jito {
 
     pub fn ping_endpoints() -> Vec<(&'static str, &'static str)> {
         vec![
-            ("Mainnet", "mainnet.block-engine.jito.wtf"),
-            ("Amsterdam", "amsterdam.mainnet.block-engine.jito.wtf"),
-            ("Frankfurt", "frankfurt.mainnet.block-engine.jito.wtf"),
-            ("London", "london.mainnet.block-engine.jito.wtf"),
-            ("NY", "ny.mainnet.block-engine.jito.wtf"),
-            ("SLC", "slc.mainnet.block-engine.jito.wtf"),
-            ("SG", "singapore.mainnet.block-engine.jito.wtf"),
-            ("Tokyo", "tokyo.mainnet.block-engine.jito.wtf"),
+            ("Jito-Mainnet", "mainnet.block-engine.jito.wtf"),
+            ("Jito-Amsterdam", "amsterdam.mainnet.block-engine.jito.wtf"),
+            ("Jito-Frankfurt", "frankfurt.mainnet.block-engine.jito.wtf"),
+            ("Jito-London", "london.mainnet.block-engine.jito.wtf"),
+            ("Jito-NY", "ny.mainnet.block-engine.jito.wtf"),
+            ("Jito-SLC", "slc.mainnet.block-engine.jito.wtf"),
+            ("Jito-SG", "singapore.mainnet.block-engine.jito.wtf"),
+            ("Jito-Tokyo", "tokyo.mainnet.block-engine.jito.wtf"),
         ]
     }
 
@@ -86,7 +86,7 @@ impl Jito {
             match result {
                 Ok(_) => {
                     println!(
-                        "{:<12} {:<17} {:>8.3} ms",
+                        "{:<22} {:<17} {:>8.3} ms",
                         name,
                         format!("({})", ip),
                         elapsed.as_secs_f64() * 1000.0
@@ -94,7 +94,7 @@ impl Jito {
                 }
                 Err(err) => {
                     println!(
-                        "{:<12} {:<17} {}",
+                        "{:<22} {:<17} {}",
                         name,
                         format!("({})", ip),
                         format!("Ping failed: {}", err)

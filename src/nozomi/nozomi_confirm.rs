@@ -43,18 +43,18 @@ impl Nozomi {
 
     pub fn ping_endpoints() -> Vec<(&'static str, &'static str)> {
         vec![
-            ("PittDirect", "pit1.nozomi.temporal.xyz"),
-            ("TyoDirect", "tyo1.nozomi.temporal.xyz"),
-            ("SgDirect", "sgp1.nozomi.temporal.xyz"),
-            ("EwrDirect", "ewr1.nozomi.temporal.xyz"),
-            ("AmsDirect", "ams1.nozomi.temporal.xyz"),
-            ("FraDirect", "fra2.nozomi.temporal.xyz"),
-            ("AmsSecure", "ams1.secure.nozomi.temporal.xyz"),
-            ("TyoSecure", "tyo1.secure.nozomi.temporal.xyz"),
-            ("SgSecure", "sgp1.secure.nozomi.temporal.xyz"),
-            ("EwrSecure", "ewr1.secure.nozomi.temporal.xyz"),
-            ("PittSecure", "pit1.secure.nozomi.temporal.xyz"),
-            ("FraSecure", "fra2.secure.nozomi.temporal.xyz"),
+            ("Nozomi-PittDirect", "pit1.nozomi.temporal.xyz"),
+            ("Nozomi-TyoDirect", "tyo1.nozomi.temporal.xyz"),
+            ("Nozomi-SgDirect", "sgp1.nozomi.temporal.xyz"),
+            ("Nozomi-EwrDirect", "ewr1.nozomi.temporal.xyz"),
+            ("Nozomi-AmsDirect", "ams1.nozomi.temporal.xyz"),
+            ("Nozomi-FraDirect", "fra2.nozomi.temporal.xyz"),
+            ("Nozomi-AmsSecure", "ams1.secure.nozomi.temporal.xyz"),
+            ("Nozomi-TyoSecure", "tyo1.secure.nozomi.temporal.xyz"),
+            ("Nozomi-SgSecure", "sgp1.secure.nozomi.temporal.xyz"),
+            ("Nozomi-EwrSecure", "ewr1.secure.nozomi.temporal.xyz"),
+            ("Nozomi-PittSecure", "pit1.secure.nozomi.temporal.xyz"),
+            ("Nozomi-FraSecure", "fra2.secure.nozomi.temporal.xyz"),
         ]
     }
 
@@ -94,7 +94,7 @@ impl Nozomi {
             match result {
                 Ok(_) => {
                     println!(
-                        "{:<12} {:<17} {:>8.3} ms",
+                        "{:<22} {:<17} {:>8.3} ms",
                         name,
                         format!("({})", ip),
                         elapsed.as_secs_f64() * 1000.0
@@ -102,7 +102,7 @@ impl Nozomi {
                 }
                 Err(err) => {
                     println!(
-                        "{:<12} {:<17} {}",
+                        "{:<22} {:<17} {}",
                         name,
                         format!("({})", ip),
                         format!("Ping failed: {}", err)
