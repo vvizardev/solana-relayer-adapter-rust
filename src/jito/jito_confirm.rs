@@ -86,7 +86,7 @@ impl Jito {
             match result {
                 Ok(_) => {
                     println!(
-                        "{:<22} {:<17} {:>8.3} ms",
+                        "{:<30} {:<30} {:>8.3} ms",
                         name,
                         format!("({})", ip),
                         elapsed.as_secs_f64() * 1000.0
@@ -94,7 +94,7 @@ impl Jito {
                 }
                 Err(err) => {
                     println!(
-                        "{:<22} {:<17} {}",
+                        "{:<30} {:<30} {}",
                         name,
                         format!("({})", ip),
                         format!("Ping failed: {}", err)
