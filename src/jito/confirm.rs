@@ -101,6 +101,8 @@ impl Jito {
         encoded_tx: &str,
         region: &Jito,
     ) -> anyhow::Result<serde_json::Value> {
+        let start = Instant::now();
+
         let client = Client::new();
         let rpc_endpoint = region.endpoint();
 
@@ -122,6 +124,33 @@ impl Jito {
             .await?;
 
         let json: serde_json::Value = response.json().await?;
+
+        let elapsed = start.elapsed();
+        let secs = elapsed.as_secs();
+        let nanos = elapsed.subsec_nanos();
+
+        let seconds = secs;
+        let millis = nanos / 1_000_000;
+        let micros = (nanos % 1_000_000) / 1_000;
+
+        let mut parts = vec![];
+
+        if seconds > 0 {
+            parts.push(format!("{}s", seconds));
+        }
+        if millis > 0 {
+            parts.push(format!("{}ms", millis));
+        }
+        if micros > 0 && millis == 0 {
+            // Only show µs if ms == 0 to avoid redundancy
+            parts.push(format!("{}µs", micros));
+        }
+
+        if parts.is_empty() {
+            parts.push("0µs".to_string()); // fallback if literally nothing
+        }
+
+        println!("Transaction submission took: {}", parts.join(" : "));
 
         Ok(json)
     }
