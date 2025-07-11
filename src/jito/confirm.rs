@@ -1,0 +1,128 @@
+use futures::future::join_all;
+use ping::ping;
+use reqwest::Client;
+use serde_json::json;
+use std::{
+    net::ToSocketAddrs,
+    time::{Duration, Instant},
+};
+
+#[derive(Debug)]
+pub enum Jito {
+    Mainnet,
+    Amsterdam,
+    Frankfurt,
+    NY,
+    Tokyo,
+}
+
+impl Jito {
+    fn endpoint(&self) -> &'static str {
+        match self {
+            Jito::Mainnet => "https://mainnet.block-engine.jito.wtf/api/v1/transactions",
+            Jito::Amsterdam => {
+                "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/transactions"
+            }
+            Jito::Frankfurt => {
+                "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/transactions"
+            }
+            Jito::NY => "https://ny.mainnet.block-engine.jito.wtf/api/v1/transactions",
+            Jito::Tokyo => "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/transactions",
+        }
+    }
+
+    pub fn ping_endpoints() -> Vec<(&'static str, &'static str)> {
+        vec![
+            ("Mainnet", "mainnet.block-engine.jito.wtf"),
+            ("Amsterdam", "amsterdam.mainnet.block-engine.jito.wtf"),
+            ("Frankfurt", "frankfurt.mainnet.block-engine.jito.wtf"),
+            ("NY", "ny.mainnet.block-engine.jito.wtf"),
+            ("Tokyo", "tokyo.mainnet.block-engine.jito.wtf"),
+        ]
+    }
+
+    pub async fn icmp_ping_all(regions: Vec<(&'static str, &'static str)>) {
+        let timeout = Duration::from_secs(2);
+        let ident = 0xABCD;
+
+        let futures = regions.into_iter().map(|(name, host)| async move {
+            // Resolve hostname to IP
+            let ip = match (host, 0)
+                .to_socket_addrs()
+                .ok()
+                .and_then(|mut iter| iter.next())
+            {
+                Some(addr) => addr.ip(),
+                None => {
+                    println!(
+                        "{:<12} {:<17} {}",
+                        name, "N/A", "Failed to resolve hostname"
+                    );
+                    return;
+                }
+            };
+
+            // Measure RTT
+            let start = Instant::now();
+            let result = ping(
+                ip,
+                Some(timeout),
+                Some(64),
+                Some(ident),
+                Some(1),
+                Some(&[0; 24]),
+            );
+            let elapsed = start.elapsed();
+
+            match result {
+                Ok(_) => {
+                    println!(
+                        "{:<12} {:<17} {:>8.3} ms",
+                        name,
+                        format!("({})", ip),
+                        elapsed.as_secs_f64() * 1000.0
+                    );
+                }
+                Err(err) => {
+                    println!(
+                        "{:<12} {:<17} {}",
+                        name,
+                        format!("({})", ip),
+                        format!("Ping failed: {}", err)
+                    );
+                }
+            }
+        });
+
+        join_all(futures).await;
+    }
+
+    pub async fn submit_transaction(
+        encoded_tx: &str,
+        region: &Jito,
+    ) -> anyhow::Result<serde_json::Value> {
+        let client = Client::new();
+        let rpc_endpoint = region.endpoint();
+
+        let payload = json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "sendTransaction",
+            "params": [encoded_tx , {
+                "encoding": "base64"
+              }],
+
+        });
+
+        let response = client
+            .post(&format!("{}?bundleOnly=false", rpc_endpoint))
+            .header("Content-Type", "application/json")
+            .json(&payload)
+            .send()
+            .await?;
+
+        let json: serde_json::Value = response.json().await?;
+
+        Ok(json)
+    }
+}

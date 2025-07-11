@@ -1,0 +1,15 @@
+[package]
+name = "solana-relayer-adapter-rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+futures = "0.3.31"
+ping = "0.6.1"
+reqwest = { version = "0.12.15" , features = ["json", "blocking"]}
+serde_json = "1.0.140"
+
+[lib]
+name = "solana_relayer_adapter_rust"
+path = "src/lib.rs"
