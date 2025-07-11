@@ -1,5 +1,11 @@
+use futures::future::join_all;
+use ping::ping;
 use reqwest::Client;
-use serde_json::{Value, json};
+use serde_json::json;
+use std::{
+    net::ToSocketAddrs,
+    time::{Duration, Instant},
+};
 
 #[derive(Debug)]
 pub enum ZeroSlot {
@@ -92,7 +98,7 @@ impl ZeroSlot {
         region: ZeroSlot,
         auth_header: &str,
         front_running_protection: bool,
-    ) -> anyhow::Result<Value> {
+    ) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
         let client = Client::new();
