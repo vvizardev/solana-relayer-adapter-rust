@@ -12,7 +12,10 @@ pub enum Jito {
     Mainnet,
     Amsterdam,
     Frankfurt,
+    London,
     NY,
+    SLC,
+    SG,
     Tokyo,
 }
 
@@ -26,7 +29,10 @@ impl Jito {
             Jito::Frankfurt => {
                 "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/transactions"
             }
+            Jito::London => "https://london.mainnet.block-engine.jito.wtf/api/v1/transactions",
             Jito::NY => "https://ny.mainnet.block-engine.jito.wtf/api/v1/transactions",
+            Jito::SLC => "https://slc.mainnet.block-engine.jito.wtf/api/v1/transactions",
+            Jito::SG => "https://singapore.mainnet.block-engine.jito.wtf/api/v1/transactions",
             Jito::Tokyo => "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/transactions",
         }
     }
@@ -36,7 +42,10 @@ impl Jito {
             ("Mainnet", "mainnet.block-engine.jito.wtf"),
             ("Amsterdam", "amsterdam.mainnet.block-engine.jito.wtf"),
             ("Frankfurt", "frankfurt.mainnet.block-engine.jito.wtf"),
+            ("London", "london.mainnet.block-engine.jito.wtf"),
             ("NY", "ny.mainnet.block-engine.jito.wtf"),
+            ("SLC", "slc.mainnet.block-engine.jito.wtf"),
+            ("SG", "singapore.mainnet.block-engine.jito.wtf"),
             ("Tokyo", "tokyo.mainnet.block-engine.jito.wtf"),
         ]
     }
@@ -124,7 +133,7 @@ impl Jito {
             .await?;
 
         let json: serde_json::Value = response.json().await?;
-        
+
         // ################### TIME LOG ###################
 
         let elapsed = start.elapsed();

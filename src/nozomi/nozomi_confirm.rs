@@ -113,57 +113,57 @@ impl Nozomi {
 
         join_all(futures).await;
     }
-}
 
-pub async fn submit_transaction(
-    encoded_tx: &str,
-    region: &Nozomi,
-    auth_key: &str,
-) -> anyhow::Result<serde_json::Value> {
-    let start = Instant::now();
+    pub async fn submit_transaction(
+        encoded_tx: &str,
+        region: &Nozomi,
+        auth_key: &str,
+    ) -> anyhow::Result<serde_json::Value> {
+        let start = Instant::now();
 
-    let client = Client::new();
-    let url = format!("{}{}", region.endpoint(), auth_key);
+        let client = Client::new();
+        let url = format!("{}{}", region.endpoint(), auth_key);
 
-    let payload = json!({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "sendTransaction",
-        "params": [encoded_tx, {"encoding": "base64"}]
-    });
+        let payload = json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "sendTransaction",
+            "params": [encoded_tx, {"encoding": "base64"}]
+        });
 
-    let response = client.post(url).json(&payload).send().await?;
+        let response = client.post(url).json(&payload).send().await?;
 
-    let data: serde_json::Value = response.json().await?;
+        let data: serde_json::Value = response.json().await?;
 
-    // ################### TIME LOG ###################
+        // ################### TIME LOG ###################
 
-    let elapsed = start.elapsed();
-    let secs = elapsed.as_secs();
-    let nanos = elapsed.subsec_nanos();
+        let elapsed = start.elapsed();
+        let secs = elapsed.as_secs();
+        let nanos = elapsed.subsec_nanos();
 
-    let seconds = secs;
-    let millis = nanos / 1_000_000;
-    let micros = (nanos % 1_000_000) / 1_000;
+        let seconds = secs;
+        let millis = nanos / 1_000_000;
+        let micros = (nanos % 1_000_000) / 1_000;
 
-    let mut parts = vec![];
+        let mut parts = vec![];
 
-    if seconds > 0 {
-        parts.push(format!("{}s", seconds));
+        if seconds > 0 {
+            parts.push(format!("{}s", seconds));
+        }
+        if millis > 0 {
+            parts.push(format!("{}ms", millis));
+        }
+        if micros > 0 && millis == 0 {
+            // Only show µs if ms == 0 to avoid redundancy
+            parts.push(format!("{}µs", micros));
+        }
+
+        if parts.is_empty() {
+            parts.push("0µs".to_string()); // fallback if literally nothing
+        }
+
+        println!("Transaction submission took: {}", parts.join(" : "));
+
+        Ok(data)
     }
-    if millis > 0 {
-        parts.push(format!("{}ms", millis));
-    }
-    if micros > 0 && millis == 0 {
-        // Only show µs if ms == 0 to avoid redundancy
-        parts.push(format!("{}µs", micros));
-    }
-
-    if parts.is_empty() {
-        parts.push("0µs".to_string()); // fallback if literally nothing
-    }
-
-    println!("Transaction submission took: {}", parts.join(" : "));
-
-    Ok(data)
 }

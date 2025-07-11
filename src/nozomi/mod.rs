@@ -1,2 +1,2 @@
-pub mod confirm;
-pub use confirm::*;
+pub mod nozomi_confirm;
+pub use nozomi_confirm::*;
