@@ -124,6 +124,8 @@ impl Jito {
             .await?;
 
         let json: serde_json::Value = response.json().await?;
+        
+        // ################### TIME LOG ###################
 
         let elapsed = start.elapsed();
         let secs = elapsed.as_secs();
