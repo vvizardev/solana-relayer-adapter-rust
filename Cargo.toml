@@ -2,6 +2,9 @@
 name = "solana-relayer-adapter-rust"
 version = "0.1.0"
 edition = "2024"
+authors = ["nakao95911@gmail.com"]
+description = "solana-relayer-adapter-rust"
+repository = "https://github.com/vvizardev/solana-relayer-adapter-rust"
 
 [dependencies]
 anyhow = "1.0.98"
