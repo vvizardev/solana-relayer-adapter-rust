@@ -7,6 +7,7 @@ description = "solana-relayer-adapter-rust"
 repository = "https://github.com/vvizardev/solana-relayer-adapter-rust"
 
 [dependencies]
+tokio = { version = "1", features = ["full"] }
 anyhow = "1.0.98"
 futures = "0.3.31"
 ping = "0.6.1"
