@@ -7,132 +7,96 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::{
+    HEALTH_CHECK_SEC, JITO_REGIONS, JitoEndpoint, JitoRegionsType, NOZOMI_REGIONS,
+    PING_DURATION_SEC, ping_all, ping_one,
+};
+
 #[derive(Debug)]
-pub enum Jito {
-    Mainnet,
-    Amsterdam,
-    Frankfurt,
-    London,
-    NY,
-    SLC,
-    SG,
-    Tokyo,
+pub struct Jito {
+    pub client: Client,
+    pub endpoint: JitoEndpoint,
+    pub auth_key: Option<String>,
 }
 
 impl Jito {
-    fn endpoint(&self) -> &'static str {
-        match self {
-            Jito::Mainnet => "https://mainnet.block-engine.jito.wtf/api/v1/transactions",
-            Jito::Amsterdam => {
-                "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/transactions"
-            }
-            Jito::Frankfurt => {
-                "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/transactions"
-            }
-            Jito::London => "https://london.mainnet.block-engine.jito.wtf/api/v1/transactions",
-            Jito::NY => "https://ny.mainnet.block-engine.jito.wtf/api/v1/transactions",
-            Jito::SLC => "https://slc.mainnet.block-engine.jito.wtf/api/v1/transactions",
-            Jito::SG => "https://singapore.mainnet.block-engine.jito.wtf/api/v1/transactions",
-            Jito::Tokyo => "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/transactions",
+    pub async fn new_with_region(region: JitoRegionsType, auth_key: Option<String>) -> Self {
+        let endpoint = JITO_REGIONS
+            .iter()
+            .find(|r| r.relayer == region)
+            .expect("Region not found")
+            .clone();
+
+        // Await the ping
+        if let Err(err) = ping_one(
+            endpoint.relayer_name,
+            endpoint.ping_endpoint,
+            PING_DURATION_SEC,
+        )
+        .await
+        {
+            println!("Ping failed during init: {}", err);
+        }
+
+        Self {
+            client: Client::builder()
+                .tcp_keepalive(Duration::from_secs(HEALTH_CHECK_SEC))
+                .build()
+                .expect("Failed to build Jito HTTP client"),
+            endpoint,
+            auth_key,
         }
     }
 
-    pub fn ping_endpoints() -> Vec<(&'static str, &'static str)> {
-        vec![
-            ("Jito-Mainnet", "mainnet.block-engine.jito.wtf"),
-            ("Jito-Amsterdam", "amsterdam.mainnet.block-engine.jito.wtf"),
-            ("Jito-Frankfurt", "frankfurt.mainnet.block-engine.jito.wtf"),
-            ("Jito-London", "london.mainnet.block-engine.jito.wtf"),
-            ("Jito-NY", "ny.mainnet.block-engine.jito.wtf"),
-            ("Jito-SLC", "slc.mainnet.block-engine.jito.wtf"),
-            ("Jito-SG", "singapore.mainnet.block-engine.jito.wtf"),
-            ("Jito-Tokyo", "tokyo.mainnet.block-engine.jito.wtf"),
-        ]
+    pub async fn new_auto(auth_key: Option<String>) -> Self {
+        let regions: Vec<(&str, &str)> = JITO_REGIONS
+            .iter()
+            .map(|r| (r.relayer_name, r.ping_endpoint))
+            .collect();
+
+        // Step 1: Ping all regions
+        let fastest_index = ping_all(regions.clone(), PING_DURATION_SEC).await;
+
+        // Step 2: Use fastest or fallback
+        let endpoint = fastest_index
+            .map(|i| JITO_REGIONS[i].clone())
+            .unwrap_or_else(|| {
+                println!("All region pings failed, falling back to first region.");
+                JITO_REGIONS[0].clone()
+            });
+
+        println!("Connecting with {} ...", endpoint.relayer_name);
+
+        // Optional: Ping chosen one again
+        if let Err(err) = ping_one(&endpoint.relayer_name, &endpoint.ping_endpoint, 2).await {
+            println!("Ping failed during init: {}", err);
+        }
+
+        Self {
+            client: Client::builder()
+                .tcp_keepalive(Duration::from_secs(HEALTH_CHECK_SEC))
+                .build()
+                .expect("Failed to build HTTP client"),
+            endpoint,
+            auth_key,
+        }
     }
 
-    pub async fn icmp_ping_all(regions: Vec<(&'static str, &'static str)>) {
-        let timeout = Duration::from_secs(2);
-        let ident = 0xABCD;
-
-        let futures = regions.into_iter().map(|(name, host)| async move {
-            // Resolve hostname to IP
-            let ip = match (host, 0)
-                .to_socket_addrs()
-                .ok()
-                .and_then(|mut iter| iter.next())
-            {
-                Some(addr) => addr.ip(),
-                None => {
-                    println!(
-                        "{:<12} {:<17} {}",
-                        name, "N/A", "Failed to resolve hostname"
-                    );
-                    return;
-                }
-            };
-
-            // Measure RTT
-            let start = Instant::now();
-            let result = ping(
-                ip,
-                Some(timeout),
-                Some(64),
-                Some(ident),
-                Some(1),
-                Some(&[0; 24]),
-            );
-            let elapsed = start.elapsed();
-
-            match result {
-                Ok(_) => {
-                    println!(
-                        "{:<30} {:<30} {:>8.3} ms",
-                        name,
-                        format!("({})", ip),
-                        elapsed.as_secs_f64() * 1000.0
-                    );
-                }
-                Err(err) => {
-                    println!(
-                        "{:<30} {:<30} {}",
-                        name,
-                        format!("({})", ip),
-                        format!("Ping failed: {}", err)
-                    );
-                }
-            }
-        });
-
-        join_all(futures).await;
-    }
-
-    pub async fn submit_transaction(
-        encoded_tx: &str,
-        region: &Jito,
-    ) -> anyhow::Result<serde_json::Value> {
+    pub async fn submit_transaction(self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
-        let client = Client::new();
-        let rpc_endpoint = region.endpoint();
+        let url = format!("{}", self.endpoint.submit_endpoint);
 
         let payload = json!({
             "jsonrpc": "2.0",
             "id": 1,
             "method": "sendTransaction",
-            "params": [encoded_tx , {
-                "encoding": "base64"
-              }],
-
+            "params": [encoded_tx, {"encoding": "base64"}]
         });
 
-        let response = client
-            .post(&format!("{}?bundleOnly=false", rpc_endpoint))
-            .header("Content-Type", "application/json")
-            .json(&payload)
-            .send()
-            .await?;
+        let response = self.client.post(url).json(&payload).send().await?;
 
-        let json: serde_json::Value = response.json().await?;
+        let data: serde_json::Value = response.json().await?;
 
         // ################### TIME LOG ###################
 
@@ -163,6 +127,6 @@ impl Jito {
 
         println!("Transaction submission took: {}", parts.join(" : "));
 
-        Ok(json)
+        Ok(data)
     }
 }

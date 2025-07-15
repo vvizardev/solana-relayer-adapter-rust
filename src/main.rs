@@ -2,12 +2,9 @@ use solana_relayer_adapter_rust::{Jito, Nozomi, ZeroSlot};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let jito_regions = Jito::ping_endpoints();
-    Jito::icmp_ping_all(jito_regions).await;
-    let nozomi_regions = Nozomi::ping_endpoints();
-    Nozomi::icmp_ping_all(nozomi_regions).await;
-    let nozomi_regions = ZeroSlot::ping_endpoints();
-    ZeroSlot::icmp_ping_all(nozomi_regions).await;
+    let jito_client = Jito::new_auto(None).await;
+    Nozomi::new_auto("4516a74a-ad06-4faf-9de4-10cce6e37f6b".to_string()).await;
+    ZeroSlot::new_auto("4516a74a-ad06-4faf-9de4-10cce6e37f6b".to_string()).await;
 
     Ok(())
 }

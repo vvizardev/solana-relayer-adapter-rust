@@ -7,102 +7,90 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::{
+    HEALTH_CHECK_SEC, PING_DURATION_SEC, ZSLOT_REGIONS, ZSlotEndpoint, ZSlotRegionsType, ping_all,
+    ping_one,
+};
+
 #[derive(Debug)]
-pub enum ZeroSlot {
-    Frankfurt,
-    NewYork,
-    AMS,
-    LA,
-    Tokyo,
+pub struct ZeroSlot {
+    pub client: Client,
+    pub endpoint: ZSlotEndpoint,
+    pub auth_key: String,
 }
 
 impl ZeroSlot {
-    fn endpoint(&self) -> &'static str {
-        match self {
-            ZeroSlot::NewYork => "https://ny.0slot.trade?api-key=",
-            ZeroSlot::Frankfurt => "https://de.0slot.trade?api-key=",
-            ZeroSlot::AMS => "https://ams.0slot.trade?api-key=",
-            ZeroSlot::LA => "https://la.0slot.trade?api-key=",
-            ZeroSlot::Tokyo => "https://jp.0slot.trade?api-key=",
+    pub async fn new_with_region(region: ZSlotRegionsType, auth_key: String) -> Self {
+        let endpoint = ZSLOT_REGIONS
+            .iter()
+            .find(|r| r.relayer == region)
+            .expect("Region not found")
+            .clone();
+
+        // Await the ping
+        if let Err(err) = ping_one(
+            endpoint.relayer_name,
+            endpoint.ping_endpoint,
+            PING_DURATION_SEC,
+        )
+        .await
+        {
+            println!("Ping failed during init: {}", err);
+        }
+
+        Self {
+            client: Client::builder()
+                .tcp_keepalive(Duration::from_secs(HEALTH_CHECK_SEC))
+                .build()
+                .expect("Failed to build Jito HTTP client"),
+            endpoint,
+            auth_key,
         }
     }
 
-    pub fn ping_endpoints() -> Vec<(&'static str, &'static str)> {
-        vec![
-            ("ZeroSlot-NewYork", "ny.0slot.trade"),
-            ("ZeroSlot-Frankfurt", "de.0slot.trade"),
-            ("ZeroSlot-AMS", "ams.0slot.trade"),
-            ("ZeroSlot-LA", "la.0slot.trade"),
-            ("ZeroSlot-Tokyo", "jp.0slot.trade"),
-        ]
-    }
+    pub async fn new_auto(auth_key: String) -> Self {
+        let regions: Vec<(&str, &str)> = ZSLOT_REGIONS
+            .iter()
+            .map(|r| (r.relayer_name, r.ping_endpoint))
+            .collect();
 
-    pub async fn icmp_ping_all(regions: Vec<(&'static str, &'static str)>) {
-        let timeout = Duration::from_secs(2);
-        let ident = 0xABCD;
+        // Step 1: Ping all regions
+        let fastest_index = ping_all(regions.clone(), PING_DURATION_SEC).await;
 
-        let futures = regions.into_iter().map(|(name, host)| async move {
-            // Resolve hostname to IP
-            let ip = match (host, 0)
-                .to_socket_addrs()
-                .ok()
-                .and_then(|mut iter| iter.next())
-            {
-                Some(addr) => addr.ip(),
-                None => {
-                    println!(
-                        "{:<12} {:<17} {}",
-                        name, "N/A", "Failed to resolve hostname"
-                    );
-                    return;
-                }
-            };
+        // Step 2: Use fastest or fallback
+        let endpoint = fastest_index
+            .map(|i| ZSLOT_REGIONS[i].clone())
+            .unwrap_or_else(|| {
+                println!("All region pings failed, falling back to first region.");
+                ZSLOT_REGIONS[0].clone()
+            });
 
-            // Measure RTT
-            let start = Instant::now();
-            let result = ping(
-                ip,
-                Some(timeout),
-                Some(64),
-                Some(ident),
-                Some(1),
-                Some(&[0; 24]),
-            );
-            let elapsed = start.elapsed();
+        println!("Connecting with {} ...", endpoint.relayer_name);
 
-            match result {
-                Ok(_) => {
-                    println!(
-                        "{:<30} {:<30} {:>8.3} ms",
-                        name,
-                        format!("({})", ip),
-                        elapsed.as_secs_f64() * 1000.0
-                    );
-                }
-                Err(err) => {
-                    println!(
-                        "{:<30} {:<30} {}",
-                        name,
-                        format!("({})", ip),
-                        format!("Ping failed: {}", err)
-                    );
-                }
-            }
-        });
+        // Optional: Ping chosen one again
+        if let Err(err) = ping_one(&endpoint.relayer_name, &endpoint.ping_endpoint, 2).await {
+            println!("Ping failed during init: {}", err);
+        }
 
-        join_all(futures).await;
+        Self {
+            client: Client::builder()
+                .tcp_keepalive(Duration::from_secs(HEALTH_CHECK_SEC))
+                .build()
+                .expect("Failed to build HTTP client"),
+            endpoint,
+            auth_key,
+        }
     }
 
     pub async fn submit_transaction(
+        self,
         encoded_tx: &str,
-        region: ZeroSlot,
-        auth_header: &str,
         front_running_protection: bool,
     ) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
         let client = Client::new();
-        let endpoint = region.endpoint();
+        let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
 
         let payload = json!({
             "transaction": {
@@ -112,8 +100,7 @@ impl ZeroSlot {
         });
 
         let response = client
-            .post(endpoint)
-            .header("Authorization", auth_header)
+            .post(url)
             .header("Content-Type", "application/json")
             .json(&payload)
             .send()

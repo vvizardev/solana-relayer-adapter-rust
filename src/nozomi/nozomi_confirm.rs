@@ -7,122 +7,85 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::{
+    HEALTH_CHECK_SEC, NOZOMI_REGIONS, NozomiEndpoint, NozomiRegionsType, PING_DURATION_SEC,
+    ping_all, ping_one,
+};
+
 #[derive(Debug)]
-pub enum Nozomi {
-    PittDirect,
-    TyoDirect,
-    SgDirect,
-    EwrDirect,
-    AmsDirect,
-    FraDirect,
-    AmsSecure,
-    TyoSecure,
-    SgSecure,
-    EwrSecure,
-    PittSecure,
-    FraSecure,
+pub struct Nozomi {
+    pub client: Client,
+    pub endpoint: NozomiEndpoint,
+    pub auth_key: String,
 }
 
 impl Nozomi {
-    fn endpoint(&self) -> &'static str {
-        match self {
-            Nozomi::PittDirect => "http://pit1.nozomi.temporal.xyz/?c=",
-            Nozomi::TyoDirect => "http://tyo1.nozomi.temporal.xyz/?c=",
-            Nozomi::SgDirect => "http://sgp1.nozomi.temporal.xyz/?c=",
-            Nozomi::EwrDirect => "http://ewr1.nozomi.temporal.xyz/?c=",
-            Nozomi::AmsDirect => "http://ams1.nozomi.temporal.xyz/?c=",
-            Nozomi::FraDirect => "http://fra2.nozomi.temporal.xyz/?c=",
-            Nozomi::AmsSecure => "https://ams1.secure.nozomi.temporal.xyz/?c=",
-            Nozomi::TyoSecure => "http://tyo1.secure.nozomi.temporal.xyz/?c=",
-            Nozomi::SgSecure => "http://sgp1.secure.nozomi.temporal.xyz/?c=",
-            Nozomi::EwrSecure => "https://ewr1.secure.nozomi.temporal.xyz/?c=",
-            Nozomi::PittSecure => "https://pit1.secure.nozomi.temporal.xyz/?c=",
-            Nozomi::FraSecure => "http://fra2.secure.nozomi.temporal.xyz/?c=",
+    pub async fn new_with_region(region: NozomiRegionsType, auth_key: String) -> Self {
+        let endpoint = NOZOMI_REGIONS
+            .iter()
+            .find(|r| r.relayer == region)
+            .expect("Region not found")
+            .clone();
+
+        // Await the ping
+        if let Err(err) = ping_one(
+            endpoint.relayer_name,
+            endpoint.ping_endpoint,
+            PING_DURATION_SEC,
+        )
+        .await
+        {
+            println!("Ping failed during init: {}", err);
+        }
+
+        Self {
+            client: Client::builder()
+                .tcp_keepalive(Duration::from_secs(HEALTH_CHECK_SEC))
+                .build()
+                .expect("Failed to build Jito HTTP client"),
+            endpoint,
+            auth_key,
         }
     }
 
-    pub fn ping_endpoints() -> Vec<(&'static str, &'static str)> {
-        vec![
-            ("Nozomi-PittDirect", "pit1.nozomi.temporal.xyz"),
-            ("Nozomi-TyoDirect", "tyo1.nozomi.temporal.xyz"),
-            ("Nozomi-SgDirect", "sgp1.nozomi.temporal.xyz"),
-            ("Nozomi-EwrDirect", "ewr1.nozomi.temporal.xyz"),
-            ("Nozomi-AmsDirect", "ams1.nozomi.temporal.xyz"),
-            ("Nozomi-FraDirect", "fra2.nozomi.temporal.xyz"),
-            ("Nozomi-AmsSecure", "ams1.secure.nozomi.temporal.xyz"),
-            ("Nozomi-TyoSecure", "tyo1.secure.nozomi.temporal.xyz"),
-            ("Nozomi-SgSecure", "sgp1.secure.nozomi.temporal.xyz"),
-            ("Nozomi-EwrSecure", "ewr1.secure.nozomi.temporal.xyz"),
-            ("Nozomi-PittSecure", "pit1.secure.nozomi.temporal.xyz"),
-            ("Nozomi-FraSecure", "fra2.secure.nozomi.temporal.xyz"),
-        ]
+    pub async fn new_auto(auth_key: String) -> Self {
+        let regions: Vec<(&str, &str)> = NOZOMI_REGIONS
+            .iter()
+            .map(|r| (r.relayer_name, r.ping_endpoint))
+            .collect();
+
+        // Step 1: Ping all regions
+        let fastest_index = ping_all(regions.clone(), PING_DURATION_SEC).await;
+
+        // Step 2: Use fastest or fallback
+        let endpoint = fastest_index
+            .map(|i| NOZOMI_REGIONS[i].clone())
+            .unwrap_or_else(|| {
+                println!("All region pings failed, falling back to first region.");
+                NOZOMI_REGIONS[0].clone()
+            });
+
+            println!("Connecting with {} ..." , endpoint.relayer_name);
+
+        // Optional: Ping chosen one again
+        if let Err(err) = ping_one(&endpoint.relayer_name, &endpoint.ping_endpoint, 2).await {
+            println!("Ping failed during init: {}", err);
+        }
+
+        Self {
+            client: Client::builder()
+                .tcp_keepalive(Duration::from_secs(HEALTH_CHECK_SEC))
+                .build()
+                .expect("Failed to build HTTP client"),
+            endpoint,
+            auth_key,
+        }
     }
 
-    pub async fn icmp_ping_all(regions: Vec<(&'static str, &'static str)>) {
-        let timeout = Duration::from_secs(2);
-        let ident = 0xABCD;
-
-        let futures = regions.into_iter().map(|(name, host)| async move {
-            // Resolve hostname to IP
-            let ip = match (host, 0)
-                .to_socket_addrs()
-                .ok()
-                .and_then(|mut iter| iter.next())
-            {
-                Some(addr) => addr.ip(),
-                None => {
-                    println!(
-                        "{:<12} {:<17} {}",
-                        name, "N/A", "Failed to resolve hostname"
-                    );
-                    return;
-                }
-            };
-
-            // Measure RTT
-            let start = Instant::now();
-            let result = ping(
-                ip,
-                Some(timeout),
-                Some(64),
-                Some(ident),
-                Some(1),
-                Some(&[0; 24]),
-            );
-            let elapsed = start.elapsed();
-
-            match result {
-                Ok(_) => {
-                    println!(
-                        "{:<30} {:<30} {:>8.3} ms",
-                        name,
-                        format!("({})", ip),
-                        elapsed.as_secs_f64() * 1000.0
-                    );
-                }
-                Err(err) => {
-                    println!(
-                        "{:<30} {:<30} {}",
-                        name,
-                        format!("({})", ip),
-                        format!("Ping failed: {}", err)
-                    );
-                }
-            }
-        });
-
-        join_all(futures).await;
-    }
-
-    pub async fn submit_transaction(
-        encoded_tx: &str,
-        region: &Nozomi,
-        auth_key: &str,
-    ) -> anyhow::Result<serde_json::Value> {
+    pub async fn submit_transaction(self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
-        let client = Client::new();
-        let url = format!("{}{}", region.endpoint(), auth_key);
+        let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
 
         let payload = json!({
             "jsonrpc": "2.0",
@@ -131,7 +94,7 @@ impl Nozomi {
             "params": [encoded_tx, {"encoding": "base64"}]
         });
 
-        let response = client.post(url).json(&payload).send().await?;
+        let response = self.client.post(url).json(&payload).send().await?;
 
         let data: serde_json::Value = response.json().await?;
 
