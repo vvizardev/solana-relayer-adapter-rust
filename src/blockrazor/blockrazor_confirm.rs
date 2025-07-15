@@ -150,7 +150,7 @@ impl BlockRazor {
         ixs
     }
 
-    pub async fn submit_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
+    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
         let client = Client::new();

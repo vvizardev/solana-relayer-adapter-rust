@@ -1,28 +1,27 @@
 use reqwest::Client;
 use serde_json::json;
-use solana_program::example_mocks::solana_sdk::system_instruction;
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction, instruction::Instruction,
-    native_token::sol_to_lamports, pubkey::Pubkey,
+    native_token::sol_to_lamports, pubkey::Pubkey, system_instruction,
 };
-use tokio::time::sleep;
 use std::time::{Duration, Instant};
+use tokio::time::sleep;
 
 use crate::{
-    HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP, JitoEndpoint, JitoRegionsType,
-    PING_DURATION_SEC, Tips, ping_all, ping_one,
+    ASTRA_IRIS_MIN_TIP, ASTRA_REGIONS, ASTRA_TIP, AstraEndpoint, AstraRegionsType,
+    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, ping_all, ping_one,
 };
 
 #[derive(Debug)]
-pub struct Jito {
+pub struct Astralane {
     pub client: Client,
-    pub endpoint: JitoEndpoint,
-    pub auth_key: Option<String>,
+    pub endpoint: AstraEndpoint,
+    pub auth_key: String,
 }
 
-impl Jito {
-    pub async fn new_with_region(region: JitoRegionsType, auth_key: Option<String>) -> Self {
-        let endpoint = JITO_REGIONS
+impl Astralane {
+    pub async fn new_with_region(region: AstraRegionsType, auth_key: String) -> Self {
+        let endpoint = ASTRA_REGIONS
             .iter()
             .find(|r| r.relayer == region)
             .expect("Region not found")
@@ -49,21 +48,21 @@ impl Jito {
         }
     }
 
-    pub async fn new_auto(auth_key: Option<String>) -> Self {
-        let regions: Vec<(String, String)> = JITO_REGIONS
+    pub async fn new_auto(auth_key: String) -> Self {
+        let regions: Vec<(String, String)> = ASTRA_REGIONS
             .iter()
             .map(|r| (r.relayer_name.to_string(), r.ping_endpoint.to_string()))
             .collect();
 
         // Step 1: Ping all regions
-        let fastest_index = ping_all(regions.clone(), PING_DURATION_SEC).await;
+        let fastest_index = ping_all(regions, PING_DURATION_SEC).await;
 
         // Step 2: Use fastest or fallback
         let endpoint = fastest_index
-            .map(|i| JITO_REGIONS[i].clone())
+            .map(|i| ASTRA_REGIONS[i].clone())
             .unwrap_or_else(|| {
                 println!("All region pings failed, falling back to first region.");
-                JITO_REGIONS[0].clone()
+                ASTRA_REGIONS[0].clone()
             });
 
         println!("Connecting with {} ...", endpoint.relayer_name);
@@ -92,30 +91,25 @@ impl Jito {
     pub fn health_check(&self, interval_sec: u64) {
         // let client = self.client.clone();
         // let endpoint = self.endpoint.clone();
-        // let relayer_name = endpoint.relayer_name.clone();
-        // let rpc_url = format!("https://{}", endpoint.ping_endpoint.clone());
+        // let relayer_name = self.endpoint.relayer_name.clone(); // Clone this separately
 
         // tokio::spawn(async move {
-        //     let payload = json!({
-        //         "jsonrpc": "2.0",
-        //         "id": 1,
-        //         "method": "getHealth"
-        //     });
+        //     let ping_url = format!("https://{}/ping", endpoint.ping_endpoint);
 
         //     loop {
-        //         match client.post(&rpc_url).json(&payload).send().await {
+        //         match client.get(&ping_url).send().await {
         //             Ok(response) if response.status().is_success() => {
-        //                 println!("{} health check successful", relayer_name);
+        //                 println!("{} Health Check Successful", relayer_name);
         //             }
         //             Ok(response) => {
         //                 eprintln!(
-        //                     "{} health check failed with status: {}",
+        //                     "{} Health Check failed with status: {}",
         //                     relayer_name,
         //                     response.status()
         //                 );
         //             }
         //             Err(err) => {
-        //                 eprintln!("{} health check request error: {:?}", relayer_name, err);
+        //                 eprintln!("{} Health Check request error: {:?}", relayer_name, err);
         //             }
         //         }
 
@@ -139,9 +133,9 @@ impl Jito {
 
         ixs.extend(tip_config.pure_ix.clone());
 
-        let relayer_fee = tip_config.tip_sol_amount.max(JITO_MIN_TIP); // use `.max()` for clarity
+        let relayer_fee = tip_config.tip_sol_amount.max(ASTRA_IRIS_MIN_TIP); // use `.max()` for clarity
 
-        let recipient = Pubkey::from_str_const(JITO_TIP[tip_config.tip_addr_idx as usize]);
+        let recipient = Pubkey::from_str_const(ASTRA_TIP[tip_config.tip_addr_idx as usize]);
         let transfer_ix = system_instruction::transfer(
             &tip_config.payer,
             &recipient,
@@ -155,7 +149,7 @@ impl Jito {
     pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
-        let url = format!("{}", self.endpoint.submit_endpoint);
+        let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
 
         let payload = json!({
             "jsonrpc": "2.0",

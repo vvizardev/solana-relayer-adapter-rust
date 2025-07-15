@@ -146,7 +146,7 @@ impl Nozomi {
         ixs
     }
 
-    pub async fn submit_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
+    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
         let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);

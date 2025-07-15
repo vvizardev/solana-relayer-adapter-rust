@@ -151,7 +151,7 @@ impl ZeroSlot {
         ixs
     }
 
-    pub async fn submit_transaction(
+    pub async fn send_transaction(
         &self,
         encoded_tx: &str,
         front_running_protection: bool,
