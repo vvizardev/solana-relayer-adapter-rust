@@ -89,33 +89,33 @@ impl NextBlock {
     }
 
     pub fn health_check(&self, interval_sec: u64) {
-        let client = self.client.clone();
-        let endpoint = self.endpoint.clone();
-        let relayer_name = self.endpoint.relayer_name.clone(); // Clone this separately
+        // let client = self.client.clone();
+        // let endpoint = self.endpoint.clone();
+        // let relayer_name = self.endpoint.relayer_name.clone(); // Clone this separately
 
-        tokio::spawn(async move {
-            let ping_url = format!("https://{}/ping", endpoint.ping_endpoint);
+        // tokio::spawn(async move {
+        //     let ping_url = format!("https://{}/ping", endpoint.ping_endpoint);
 
-            loop {
-                match client.get(&ping_url).send().await {
-                    Ok(response) if response.status().is_success() => {
-                        println!("{} Health Check Successful", relayer_name);
-                    }
-                    Ok(response) => {
-                        eprintln!(
-                            "{} Health Check failed with status: {}",
-                            relayer_name,
-                            response.status()
-                        );
-                    }
-                    Err(err) => {
-                        eprintln!("{} Health Check request error: {:?}", relayer_name, err);
-                    }
-                }
+        //     loop {
+        //         match client.get(&ping_url).send().await {
+        //             Ok(response) if response.status().is_success() => {
+        //                 println!("{} Health Check Successful", relayer_name);
+        //             }
+        //             Ok(response) => {
+        //                 eprintln!(
+        //                     "{} Health Check failed with status: {}",
+        //                     relayer_name,
+        //                     response.status()
+        //                 );
+        //             }
+        //             Err(err) => {
+        //                 eprintln!("{} Health Check request error: {:?}", relayer_name, err);
+        //             }
+        //         }
 
-                sleep(Duration::from_secs(interval_sec)).await;
-            }
-        });
+        //         sleep(Duration::from_secs(interval_sec)).await;
+        //     }
+        // });
     }
 
     pub fn add_tip_ix(&self, tip_config: Tips) -> Vec<Instruction> {
@@ -146,22 +146,31 @@ impl NextBlock {
         ixs
     }
 
-    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
+    pub async fn send_transaction(
+        &self,
+        encoded_tx: &str,
+        front_running_protection: bool,
+    ) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
-        let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
-
         let payload = json!({
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "sendTransaction",
-            "params": [encoded_tx, {"encoding": "base64"}]
+            "transaction": {
+                "content": encoded_tx
+            },
+            "frontRunningProtection": front_running_protection
         });
 
-        let response = self.client.post(url).json(&payload).send().await?;
+        // Send POST request
+        let response = self
+            .client
+            .post(self.endpoint.submit_endpoint)
+            .header("Authorization", &self.auth_key)
+            .json(&payload)
+            .send()
+            .await?;
 
+        // Parse and return response body as JSON
         let data: serde_json::Value = response.json().await?;
-
         // ################### TIME LOG ###################
 
         let elapsed = start.elapsed();
