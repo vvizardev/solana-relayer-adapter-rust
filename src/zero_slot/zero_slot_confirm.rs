@@ -96,7 +96,7 @@ impl ZeroSlot {
         let start = Instant::now();
 
         let client = Client::new();
-        let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
+        let url = format!("{}{}", self.endpoint.submit_endpoint.clone(), self.auth_key);
 
         let payload = json!({
             "transaction": {
