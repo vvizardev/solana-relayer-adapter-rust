@@ -29,8 +29,8 @@ impl Nozomi {
 
         // Await the ping
         if let Err(err) = ping_one(
-            endpoint.relayer_name,
-            endpoint.ping_endpoint,
+            endpoint.relayer_name.to_string(),
+            endpoint.ping_endpoint.to_string(),
             PING_DURATION_SEC,
         )
         .await
@@ -49,13 +49,13 @@ impl Nozomi {
     }
 
     pub async fn new_auto(auth_key: String) -> Self {
-        let regions: Vec<(&str, &str)> = NOZOMI_REGIONS
+        let regions: Vec<(String, String)> = NOZOMI_REGIONS
             .iter()
-            .map(|r| (r.relayer_name, r.ping_endpoint))
+            .map(|r| (r.relayer_name.to_string(), r.ping_endpoint.to_string()))
             .collect();
 
         // Step 1: Ping all regions
-        let fastest_index = ping_all(regions.clone(), PING_DURATION_SEC).await;
+        let fastest_index = ping_all(regions, PING_DURATION_SEC).await;
 
         // Step 2: Use fastest or fallback
         let endpoint = fastest_index
@@ -65,10 +65,16 @@ impl Nozomi {
                 NOZOMI_REGIONS[0].clone()
             });
 
-            println!("Connecting with {} ..." , endpoint.relayer_name);
+        println!("Connecting with {} ...", endpoint.relayer_name);
 
         // Optional: Ping chosen one again
-        if let Err(err) = ping_one(&endpoint.relayer_name, &endpoint.ping_endpoint, 2).await {
+        if let Err(err) = ping_one(
+            endpoint.relayer_name.to_string(),
+            endpoint.ping_endpoint.to_string(),
+            2,
+        )
+        .await
+        {
             println!("Ping failed during init: {}", err);
         }
 
@@ -82,10 +88,10 @@ impl Nozomi {
         }
     }
 
-    pub async fn submit_transaction(self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
+    pub async fn submit_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
-        let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
+        let url = format!("{}{}", self.endpoint.submit_endpoint.clone(), self.auth_key);
 
         let payload = json!({
             "jsonrpc": "2.0",

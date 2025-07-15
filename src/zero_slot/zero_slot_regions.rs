@@ -9,35 +9,46 @@ pub enum ZSlotRegionsType {
     Tokyo,
 }
 
+macro_rules! zslot_endpoint {
+    ($region:ident, $name:expr, $submit:expr, $ping:expr) => {
+        ZSlotEndpoint {
+            relayer: ZSlotRegionsType::$region,
+            relayer_name: $name,
+            submit_endpoint: $submit,
+            ping_endpoint: $ping,
+        }
+    };
+}
+
 pub const ZSLOT_REGIONS: &[ZSlotEndpoint] = &[
-    ZSlotEndpoint {
-        relayer: ZSlotRegionsType::NewYork,
-        relayer_name: "ZeroSlot-NewYork",
-        submit_endpoint: "https://ny.0slot.trade?api-key=",
-        ping_endpoint: "ny.0slot.trade",
-    },
-    ZSlotEndpoint {
-        relayer: ZSlotRegionsType::Frankfurt,
-        relayer_name: "ZeroSlot-Frankfurt",
-        submit_endpoint: "https://de.0slot.trade?api-key=",
-        ping_endpoint: "de.0slot.trade",
-    },
-    ZSlotEndpoint {
-        relayer: ZSlotRegionsType::AMS,
-        relayer_name: "ZeroSlot-AMS",
-        submit_endpoint: "https://ams.0slot.trade?api-key=",
-        ping_endpoint: "ams.0slot.trade",
-    },
-    ZSlotEndpoint {
-        relayer: ZSlotRegionsType::LA,
-        relayer_name: "ZeroSlot-LA",
-        submit_endpoint: "https://la.0slot.trade?api-key=",
-        ping_endpoint: "la.0slot.trade",
-    },
-    ZSlotEndpoint {
-        relayer: ZSlotRegionsType::Tokyo,
-        relayer_name: "ZeroSlot-Tokyo",
-        submit_endpoint: "https://jp.0slot.trade?api-key=",
-        ping_endpoint: "jp.0slot.trade",
-    },
+    zslot_endpoint!(
+        NewYork,
+        "ZeroSlot-NewYork",
+        "https://ny.0slot.trade?api-key=",
+        "ny.0slot.trade"
+    ),
+    zslot_endpoint!(
+        Frankfurt,
+        "ZeroSlot-Frankfurt",
+        "https://de.0slot.trade?api-key=",
+        "de.0slot.trade"
+    ),
+    zslot_endpoint!(
+        AMS,
+        "ZeroSlot-AMS",
+        "https://ams.0slot.trade?api-key=",
+        "ams.0slot.trade"
+    ),
+    zslot_endpoint!(
+        LA,
+        "ZeroSlot-LA",
+        "https://la.0slot.trade?api-key=",
+        "la.0slot.trade"
+    ),
+    zslot_endpoint!(
+        Tokyo,
+        "ZeroSlot-Tokyo",
+        "https://jp.0slot.trade?api-key=",
+        "jp.0slot.trade"
+    ),
 ];

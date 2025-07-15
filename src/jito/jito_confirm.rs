@@ -29,8 +29,8 @@ impl Jito {
 
         // Await the ping
         if let Err(err) = ping_one(
-            endpoint.relayer_name,
-            endpoint.ping_endpoint,
+            endpoint.relayer_name.to_string(),
+            endpoint.ping_endpoint.to_string(),
             PING_DURATION_SEC,
         )
         .await
@@ -49,9 +49,9 @@ impl Jito {
     }
 
     pub async fn new_auto(auth_key: Option<String>) -> Self {
-        let regions: Vec<(&str, &str)> = JITO_REGIONS
+        let regions: Vec<(String, String)> = JITO_REGIONS
             .iter()
-            .map(|r| (r.relayer_name, r.ping_endpoint))
+            .map(|r| (r.relayer_name.to_string(), r.ping_endpoint.to_string()))
             .collect();
 
         // Step 1: Ping all regions
@@ -68,7 +68,13 @@ impl Jito {
         println!("Connecting with {} ...", endpoint.relayer_name);
 
         // Optional: Ping chosen one again
-        if let Err(err) = ping_one(&endpoint.relayer_name, &endpoint.ping_endpoint, 2).await {
+        if let Err(err) = ping_one(
+            endpoint.relayer_name.to_string(),
+            endpoint.ping_endpoint.to_string(),
+            2,
+        )
+        .await
+        {
             println!("Ping failed during init: {}", err);
         }
 

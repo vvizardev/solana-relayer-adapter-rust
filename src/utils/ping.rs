@@ -10,8 +10,8 @@ pub const PING_DURATION_SEC : u64 = 2;
 pub const HEALTH_CHECK_SEC : u64 = 2;
 
 pub async fn ping_one(
-    name: &'static str,
-    host: &'static str,
+    name: String,
+    host: String,
     ping_duration: u64,
 ) -> Result<f64, String> {
     let timeout = Duration::from_secs(ping_duration);
@@ -52,7 +52,7 @@ pub async fn ping_one(
 }
 
 pub async fn ping_all(
-    regions: Vec<(&'static str, &'static str)>,
+    regions: Vec<(String, String)>,
     ping_duration: u64,
 ) -> Option<usize> {
     let timeout = Duration::from_secs(ping_duration);
