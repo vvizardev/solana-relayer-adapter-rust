@@ -22,25 +22,25 @@ macro_rules! blockrazor_endpoint {
 pub const BRAZOR_REGIONS: &[BRazorEndpoint] = &[
     blockrazor_endpoint!(
         NewYork,
-        "ZeroSlot-NewYork",
+        "BlockRazor-NewYork",
         "http://newyork.solana.blockrazor.xyz:443/sendTransaction",
         "newyork.solana.blockrazor.xyz"
     ),
     blockrazor_endpoint!(
         Frankfurt,
-        "ZeroSlot-Frankfurt",
+        "BlockRazor-Frankfurt",
         "http://frankfurt.solana.blockrazor.xyz:443/sendTransaction",
         "frankfurt.solana.blockrazor.xyz"
     ),
     blockrazor_endpoint!(
         AMS,
-        "ZeroSlot-AMS",
+        "BlockRazor-AMS",
         "http://amsterdam.solana.blockrazor.xyz:443/sendTransaction",
         "amsterdam.solana.blockrazor.xyz"
     ),
     blockrazor_endpoint!(
         Tokyo,
-        "ZeroSlot-Tokyo",
+        "BlockRazor-Tokyo",
         "http://tokyo.solana.blockrazor.xyz:443/sendTransaction",
         "tokyo.solana.blockrazor.xyz"
     ),
