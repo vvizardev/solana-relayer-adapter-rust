@@ -5,6 +5,7 @@ use solana_sdk::{
     native_token::sol_to_lamports, pubkey::Pubkey, system_instruction,
 };
 use std::time::{Duration, Instant};
+use tokio::time::sleep;
 
 use crate::{
     HEALTH_CHECK_SEC, NOZOMI_MIN_TIP, NOZOMI_REGIONS, NOZOMI_TIP_RAW, NozomiEndpoint,
@@ -85,6 +86,36 @@ impl Nozomi {
             endpoint,
             auth_key,
         }
+    }
+
+    pub fn health_check(&self, interval_sec: u64) {
+        let client = self.client.clone();
+        let endpoint = self.endpoint.clone();
+        let relayer_name = self.endpoint.relayer_name.clone(); // Clone this separately
+
+        tokio::spawn(async move {
+            let ping_url = format!("https://{}/ping", endpoint.ping_endpoint);
+
+            loop {
+                match client.get(&ping_url).send().await {
+                    Ok(response) if response.status().is_success() => {
+                        println!("{} Health Check Successful", relayer_name);
+                    }
+                    Ok(response) => {
+                        eprintln!(
+                            "{} Health Check failed with status: {}",
+                            relayer_name,
+                            response.status()
+                        );
+                    }
+                    Err(err) => {
+                        eprintln!("{} Health Check request error: {:?}", relayer_name, err);
+                    }
+                }
+
+                sleep(Duration::from_secs(interval_sec)).await;
+            }
+        });
     }
 
     pub fn add_tip_ix(&self, tip_config: Tips) -> Vec<Instruction> {
