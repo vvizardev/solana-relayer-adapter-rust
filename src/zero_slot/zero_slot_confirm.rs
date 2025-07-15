@@ -84,7 +84,7 @@ impl ZeroSlot {
     }
 
     pub async fn submit_transaction(
-        self,
+        &self,
         encoded_tx: &str,
         front_running_protection: bool,
     ) -> anyhow::Result<serde_json::Value> {
