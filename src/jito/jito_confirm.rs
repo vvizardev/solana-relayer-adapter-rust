@@ -5,8 +5,8 @@ use solana_sdk::{
     compute_budget::ComputeBudgetInstruction, instruction::Instruction,
     native_token::sol_to_lamports, pubkey::Pubkey,
 };
-use tokio::time::sleep;
 use std::time::{Duration, Instant};
+use tokio::time::sleep;
 
 use crate::{
     HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP, JitoEndpoint, JitoRegionsType,
@@ -92,30 +92,25 @@ impl Jito {
     pub fn health_check(&self, interval_sec: u64) {
         let client = self.client.clone();
         let endpoint = self.endpoint.clone();
-        let relayer_name = endpoint.relayer_name.clone();
-        let rpc_url = format!("https://{}", endpoint.ping_endpoint.clone());
+        let relayer_name = self.endpoint.relayer_name.clone(); // Clone this separately
 
         tokio::spawn(async move {
-            let payload = json!({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "getHealth"
-            });
+            let ping_url = format!("https://{}", endpoint.ping_endpoint);
 
             loop {
-                match client.post(&rpc_url).json(&payload).send().await {
+                match client.get(&ping_url).send().await {
                     Ok(response) if response.status().is_success() => {
-                        println!("{} health check successful", relayer_name);
+                        println!("{} Health Check Successful", relayer_name);
                     }
                     Ok(response) => {
                         eprintln!(
-                            "{} health check failed with status: {}",
+                            "{} Health Check failed with status: {}",
                             relayer_name,
                             response.status()
                         );
                     }
                     Err(err) => {
-                        eprintln!("{} health check request error: {:?}", relayer_name, err);
+                        eprintln!("{} Health Check request error: {:?}", relayer_name, err);
                     }
                 }
 
