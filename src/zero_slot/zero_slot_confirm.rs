@@ -4,8 +4,8 @@ use solana_sdk::{
     compute_budget::ComputeBudgetInstruction, instruction::Instruction,
     native_token::sol_to_lamports, pubkey::Pubkey, system_instruction,
 };
-use std::time::{Duration, Instant};
 use tokio::time::sleep;
+use std::time::{Duration, Instant};
 
 use crate::{
     HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, ZSLOT_MIN_TIP, ZSLOT_REGIONS, ZSLOT_TIP,
@@ -89,33 +89,38 @@ impl ZeroSlot {
     }
 
     pub fn health_check(&self, interval_sec: u64) {
-        let client = self.client.clone();
-        let endpoint = self.endpoint.clone();
-        let relayer_name = self.endpoint.relayer_name.clone(); // Clone this separately
+        // let client = self.client.clone();
+        // let endpoint = self.endpoint.clone();
+        // let relayer_name = endpoint.relayer_name.clone();
+        // let rpc_url = format!("https://{}", endpoint.ping_endpoint.clone());
 
-        tokio::spawn(async move {
-            let ping_url = format!("https://{}", endpoint.ping_endpoint);
+        // tokio::spawn(async move {
+        //     let payload = json!({
+        //         "jsonrpc": "2.0",
+        //         "id": 1,
+        //         "method": "getHealth"
+        //     });
 
-            loop {
-                match client.get(&ping_url).send().await {
-                    Ok(response) if response.status().is_success() => {
-                        println!("{} Health Check Successful", relayer_name);
-                    }
-                    Ok(response) => {
-                        eprintln!(
-                            "{} Health Check failed with status: {}",
-                            relayer_name,
-                            response.status()
-                        );
-                    }
-                    Err(err) => {
-                        eprintln!("{} Health Check request error: {:?}", relayer_name, err);
-                    }
-                }
+        //     loop {
+        //         match client.post(&rpc_url).json(&payload).send().await {
+        //             Ok(response) if response.status().is_success() => {
+        //                 println!("{} health check successful", relayer_name);
+        //             }
+        //             Ok(response) => {
+        //                 eprintln!(
+        //                     "{} health check failed with status: {}",
+        //                     relayer_name,
+        //                     response.status()
+        //                 );
+        //             }
+        //             Err(err) => {
+        //                 eprintln!("{} health check request error: {:?}", relayer_name, err);
+        //             }
+        //         }
 
-                sleep(Duration::from_secs(interval_sec)).await;
-            }
-        });
+        //         sleep(Duration::from_secs(interval_sec)).await;
+        //     }
+        // });
     }
 
     pub fn add_tip_ix(&self, tip_config: Tips) -> Vec<Instruction> {
