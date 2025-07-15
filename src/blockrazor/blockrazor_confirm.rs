@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use crate::{
     BLOCKRAZOR_MIN_TIP, BLOCKRAZOR_TIP, BRAZOR_REGIONS, BRazorEndpoint, BRazorRegionsType,
-    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, ZSLOT_REGIONS, ping_all, ping_one,
+    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, ping_all, ping_one,
 };
 
 #[derive(Debug)]
@@ -48,7 +48,7 @@ impl BlockRazor {
     }
 
     pub async fn new_auto(auth_key: String) -> Self {
-        let regions: Vec<(String, String)> = ZSLOT_REGIONS
+        let regions: Vec<(String, String)> = BRAZOR_REGIONS
             .iter()
             .map(|r| (r.relayer_name.to_string(), r.ping_endpoint.to_string()))
             .collect();
