@@ -8,20 +8,20 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    HEALTH_CHECK_SEC, NOZOMI_MIN_TIP, NOZOMI_REGIONS, NOZOMI_TIP, NozomiEndpoint,
-    NozomiRegionsType, PING_DURATION_SEC, Tips, ping_all, ping_one,
+    HEALTH_CHECK_SEC, NEXTBLOCK_MIN_TIP, NEXTBLOCK_REGIONS, NEXTBLOCK_TIP, NextBlockEndpoint,
+    NextBlockRegionsType, PING_DURATION_SEC, Tips, ping_all, ping_one,
 };
 
 #[derive(Debug)]
-pub struct Nozomi {
+pub struct NextBlock {
     pub client: Client,
-    pub endpoint: NozomiEndpoint,
+    pub endpoint: NextBlockEndpoint,
     pub auth_key: String,
 }
 
-impl Nozomi {
-    pub async fn new_with_region(region: NozomiRegionsType, auth_key: String) -> Self {
-        let endpoint = NOZOMI_REGIONS
+impl NextBlock {
+    pub async fn new_with_region(region: NextBlockRegionsType, auth_key: String) -> Self {
+        let endpoint = NEXTBLOCK_REGIONS
             .iter()
             .find(|r| r.relayer == region)
             .expect("Region not found")
@@ -49,7 +49,7 @@ impl Nozomi {
     }
 
     pub async fn new_auto(auth_key: String) -> Self {
-        let regions: Vec<(String, String)> = NOZOMI_REGIONS
+        let regions: Vec<(String, String)> = NEXTBLOCK_REGIONS
             .iter()
             .map(|r| (r.relayer_name.to_string(), r.ping_endpoint.to_string()))
             .collect();
@@ -59,10 +59,10 @@ impl Nozomi {
 
         // Step 2: Use fastest or fallback
         let endpoint = fastest_index
-            .map(|i| NOZOMI_REGIONS[i].clone())
+            .map(|i| NEXTBLOCK_REGIONS[i].clone())
             .unwrap_or_else(|| {
                 println!("All region pings failed, falling back to first region.");
-                NOZOMI_REGIONS[0].clone()
+                NEXTBLOCK_REGIONS[0].clone()
             });
 
         println!("Connecting with {} ...", endpoint.relayer_name);
@@ -133,9 +133,9 @@ impl Nozomi {
 
         ixs.extend(tip_config.pure_ix.clone());
 
-        let relayer_fee = tip_config.tip_sol_amount.max(NOZOMI_MIN_TIP); // use `.max()` for clarity
+        let relayer_fee = tip_config.tip_sol_amount.max(NEXTBLOCK_MIN_TIP); // use `.max()` for clarity
 
-        let recipient = Pubkey::from_str_const(NOZOMI_TIP[tip_config.tip_addr_idx as usize]);
+        let recipient = Pubkey::from_str_const(NEXTBLOCK_TIP[tip_config.tip_addr_idx as usize]);
         let transfer_ix = system_instruction::transfer(
             &tip_config.payer,
             &recipient,

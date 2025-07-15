@@ -1,5 +1,6 @@
 use crate::{
-    AstraRegionsType, BRazorRegionsType, JitoRegionsType, NozomiRegionsType, ZSlotRegionsType,
+    AstraRegionsType, BRazorRegionsType, JitoRegionsType, NextBlockRegionsType, NozomiRegionsType,
+    ZSlotRegionsType,
 };
 
 #[derive(Debug, Clone)]
@@ -37,6 +38,14 @@ pub struct BRazorEndpoint {
 #[derive(Debug, Clone)]
 pub struct AstraEndpoint {
     pub relayer: AstraRegionsType,
+    pub submit_endpoint: &'static str,
+    pub ping_endpoint: &'static str,
+    pub relayer_name: &'static str,
+}
+
+#[derive(Debug, Clone)]
+pub struct NextBlockEndpoint {
+    pub relayer: NextBlockRegionsType,
     pub submit_endpoint: &'static str,
     pub ping_endpoint: &'static str,
     pub relayer_name: &'static str,

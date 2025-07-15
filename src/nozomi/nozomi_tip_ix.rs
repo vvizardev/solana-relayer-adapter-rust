@@ -1,4 +1,4 @@
-pub const NOZOMI_TIP_RAW: [&str; 17] = [
+pub const NOZOMI_TIP: [&str; 17] = [
     "TEMPaMeCRFAS9EKF53Jd6KpHxgL47uWLcpFArU1Fanq",
     "noz3jAjPiHuBPqiSPkkugaJDkJscPuRhYnSpbi8UvC4",
     "noz3str9KXfpKknefHji8L1mPgimezaiUyCHYMDv1GE",
