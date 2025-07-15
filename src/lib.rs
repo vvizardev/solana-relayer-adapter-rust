@@ -1,10 +1,10 @@
 pub mod jito;
 pub mod nozomi;
 pub mod zero_slot;
-pub mod bloxroute;
+pub mod blockrazor;
 pub mod utils;
 pub use jito::*;
 pub use nozomi::*;
 pub use zero_slot::*;
-pub use bloxroute::*;
+pub use blockrazor::*;
 pub use utils::*;

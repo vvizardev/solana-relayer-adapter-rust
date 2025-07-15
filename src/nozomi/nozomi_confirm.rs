@@ -1,10 +1,14 @@
 use reqwest::Client;
 use serde_json::json;
+use solana_sdk::{
+    compute_budget::ComputeBudgetInstruction, instruction::Instruction,
+    native_token::sol_to_lamports, pubkey::Pubkey, system_instruction,
+};
 use std::time::{Duration, Instant};
 
 use crate::{
-    HEALTH_CHECK_SEC, NOZOMI_REGIONS, NozomiEndpoint, NozomiRegionsType, PING_DURATION_SEC,
-    ping_all, ping_one,
+    HEALTH_CHECK_SEC, NOZOMI_MIN_TIP, NOZOMI_REGIONS, NOZOMI_TIP_RAW, NozomiEndpoint,
+    NozomiRegionsType, PING_DURATION_SEC, Tips, ping_all, ping_one,
 };
 
 #[derive(Debug)]
@@ -81,6 +85,34 @@ impl Nozomi {
             endpoint,
             auth_key,
         }
+    }
+
+    pub fn add_tip_ix(&self, tip_config: Tips) -> Vec<Instruction> {
+        let mut ixs: Vec<Instruction> = Vec::new();
+
+        if let Some(cu) = tip_config.cu {
+            ixs.push(ComputeBudgetInstruction::set_compute_unit_limit(cu as u32));
+        };
+
+        if let Some(priority_fee_micro_lamport) = tip_config.priority_fee_micro_lamport {
+            ixs.push(ComputeBudgetInstruction::set_compute_unit_price(
+                priority_fee_micro_lamport,
+            ));
+        };
+
+        ixs.extend(tip_config.pure_ix.clone());
+
+        let relayer_fee = tip_config.tip_sol_amount.max(NOZOMI_MIN_TIP); // use `.max()` for clarity
+
+        let recipient = Pubkey::from_str_const(NOZOMI_TIP_RAW[tip_config.tip_addr_idx as usize]);
+        let transfer_ix = system_instruction::transfer(
+            &tip_config.payer,
+            &recipient,
+            sol_to_lamports(relayer_fee),
+        );
+        ixs.push(transfer_ix);
+
+        ixs
     }
 
     pub async fn submit_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
