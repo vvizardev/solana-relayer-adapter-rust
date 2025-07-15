@@ -1,4 +1,4 @@
-use crate::{JitoRegionsType, NozomiRegionsType, ZSlotRegionsType};
+use crate::{BRazorRegionsType, JitoRegionsType, NozomiRegionsType, ZSlotRegionsType};
 
 #[derive(Debug, Clone)]
 pub struct NozomiEndpoint {
@@ -19,6 +19,14 @@ pub struct JitoEndpoint {
 #[derive(Debug, Clone)]
 pub struct ZSlotEndpoint {
     pub relayer: ZSlotRegionsType,
+    pub submit_endpoint: &'static str,
+    pub ping_endpoint: &'static str,
+    pub relayer_name: &'static str,
+}
+
+#[derive(Debug, Clone)]
+pub struct BRazorEndpoint {
+    pub relayer: BRazorRegionsType,
     pub submit_endpoint: &'static str,
     pub ping_endpoint: &'static str,
     pub relayer_name: &'static str,
