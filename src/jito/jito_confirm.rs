@@ -1,15 +1,10 @@
-use futures::future::join_all;
-use ping::ping;
 use reqwest::Client;
 use serde_json::json;
-use std::{
-    net::ToSocketAddrs,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use crate::{
-    HEALTH_CHECK_SEC, JITO_REGIONS, JitoEndpoint, JitoRegionsType, NOZOMI_REGIONS,
-    PING_DURATION_SEC, ping_all, ping_one,
+    HEALTH_CHECK_SEC, JITO_REGIONS, JitoEndpoint, JitoRegionsType, PING_DURATION_SEC, ping_all,
+    ping_one,
 };
 
 #[derive(Debug)]
@@ -91,7 +86,7 @@ impl Jito {
     pub async fn submit_transaction(self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
-        let url = format!("{}", self.endpoint.submit_endpoint.clone());
+        let url = format!("{}", self.endpoint.submit_endpoint);
 
         let payload = json!({
             "jsonrpc": "2.0",

@@ -1,11 +1,6 @@
-use futures::future::join_all;
-use ping::ping;
 use reqwest::Client;
 use serde_json::json;
-use std::{
-    net::ToSocketAddrs,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use crate::{
     HEALTH_CHECK_SEC, PING_DURATION_SEC, ZSLOT_REGIONS, ZSlotEndpoint, ZSlotRegionsType, ping_all,
@@ -96,7 +91,7 @@ impl ZeroSlot {
         let start = Instant::now();
 
         let client = Client::new();
-        let url = format!("{}{}", self.endpoint.submit_endpoint.clone(), self.auth_key);
+        let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
 
         let payload = json!({
             "transaction": {
