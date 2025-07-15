@@ -1,10 +1,16 @@
 use reqwest::Client;
 use serde_json::json;
+use solana_program::example_mocks::solana_sdk::system_instruction;
+use solana_sdk::{
+    compute_budget::ComputeBudgetInstruction, instruction::Instruction,
+    native_token::sol_to_lamports, pubkey::Pubkey,
+};
+use tokio::time::sleep;
 use std::time::{Duration, Instant};
 
 use crate::{
-    HEALTH_CHECK_SEC, JITO_REGIONS, JitoEndpoint, JitoRegionsType, PING_DURATION_SEC, ping_all,
-    ping_one,
+    HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP, JitoEndpoint, JitoRegionsType,
+    PING_DURATION_SEC, Tips, ping_all, ping_one,
 };
 
 #[derive(Debug)]
@@ -81,6 +87,69 @@ impl Jito {
             endpoint,
             auth_key,
         }
+    }
+
+    pub fn health_check(&self, interval_sec: u64) {
+        let client = self.client.clone();
+        let endpoint = self.endpoint.clone();
+        let relayer_name = endpoint.relayer_name.clone();
+        let rpc_url = format!("https://{}", endpoint.ping_endpoint.clone());
+
+        tokio::spawn(async move {
+            let payload = json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "getHealth"
+            });
+
+            loop {
+                match client.post(&rpc_url).json(&payload).send().await {
+                    Ok(response) if response.status().is_success() => {
+                        println!("{} health check successful", relayer_name);
+                    }
+                    Ok(response) => {
+                        eprintln!(
+                            "{} health check failed with status: {}",
+                            relayer_name,
+                            response.status()
+                        );
+                    }
+                    Err(err) => {
+                        eprintln!("{} health check request error: {:?}", relayer_name, err);
+                    }
+                }
+
+                sleep(Duration::from_secs(interval_sec)).await;
+            }
+        });
+    }
+
+    pub fn add_tip_ix(&self, tip_config: Tips) -> Vec<Instruction> {
+        let mut ixs: Vec<Instruction> = Vec::new();
+
+        if let Some(cu) = tip_config.cu {
+            ixs.push(ComputeBudgetInstruction::set_compute_unit_limit(cu as u32));
+        };
+
+        if let Some(priority_fee_micro_lamport) = tip_config.priority_fee_micro_lamport {
+            ixs.push(ComputeBudgetInstruction::set_compute_unit_price(
+                priority_fee_micro_lamport,
+            ));
+        };
+
+        ixs.extend(tip_config.pure_ix.clone());
+
+        let relayer_fee = tip_config.tip_sol_amount.max(JITO_MIN_TIP); // use `.max()` for clarity
+
+        let recipient = Pubkey::from_str_const(JITO_TIP[tip_config.tip_addr_idx as usize]);
+        let transfer_ix = system_instruction::transfer(
+            &tip_config.payer,
+            &recipient,
+            sol_to_lamports(relayer_fee),
+        );
+        ixs.push(transfer_ix);
+
+        ixs
     }
 
     pub async fn submit_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
