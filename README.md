@@ -28,7 +28,7 @@ A unified client interface for interacting with top Solana transaction relayers,
 
 - Cargo CLI
 ```bash
-cargo add solana_relayer_adapter_rust
+cargo add solana-relayer-adapter-rust
 ```
 
 - Cargo TOML
