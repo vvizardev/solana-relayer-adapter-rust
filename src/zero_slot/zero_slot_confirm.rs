@@ -4,8 +4,8 @@ use solana_sdk::{
     compute_budget::ComputeBudgetInstruction, instruction::Instruction,
     native_token::sol_to_lamports, pubkey::Pubkey, system_instruction,
 };
-use tokio::time::sleep;
 use std::time::{Duration, Instant};
+use tokio::time::sleep;
 
 use crate::{
     HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, ZSLOT_MIN_TIP, ZSLOT_REGIONS, ZSLOT_TIP,
@@ -151,21 +151,20 @@ impl ZeroSlot {
         ixs
     }
 
-    pub async fn send_transaction(
-        &self,
-        encoded_tx: &str,
-        front_running_protection: bool,
-    ) -> anyhow::Result<serde_json::Value> {
+    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
         let client = Client::new();
         let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
 
         let payload = json!({
-            "transaction": {
-                "content": encoded_tx,
-            },
-            "frontRunningProtection": front_running_protection,
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "sendTransaction",
+            "params": [
+                encoded_tx,
+                { "encoding": "base64" }
+            ]
         });
 
         let response = client
