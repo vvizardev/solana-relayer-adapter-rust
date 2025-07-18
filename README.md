@@ -28,7 +28,7 @@ A unified client interface for interacting with top Solana transaction relayers,
 
 - Cargo CLI
 ```bash
-cargo add solana_relayer_adapter_rust
+cargo add solana-relayer-adapter-rust
 ```
 
 - Cargo TOML
@@ -197,7 +197,7 @@ ZeroSlot-Tokyo                 (172.66.40.254)                   0.771 ms
 ```
 
 - ### RESULT
-```text
+
 ### ✅ Fastest per Provider
 
 | Provider       | Best Region     | Latency (ms) |
@@ -208,8 +208,6 @@ ZeroSlot-Tokyo                 (172.66.40.254)                   0.771 ms
 | **NextBlock**  | Frankfurt       | 0.160        |
 | **ZeroSlot**   | Tokyo           | 0.739        |
 | **Astralane**  | Frankfurt       | 8.101        |
- 
-```
 
 📌 The system will auto-select the optimal endpoint based on RTT.
 
