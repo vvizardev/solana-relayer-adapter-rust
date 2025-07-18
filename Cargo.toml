@@ -16,6 +16,7 @@ reqwest = { version = "0.12.15" , features = ["json", "blocking"]}
 serde_json = "1.0.140"
 solana-program = "2.2.1"
 solana-sdk = "2.2.1"
+dotenvy = "0.15.7"
 
 [lib]
 name = "solana_relayer_adapter_rust"
