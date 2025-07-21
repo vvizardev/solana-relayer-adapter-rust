@@ -1,15 +1,15 @@
 use reqwest::Client;
 use serde_json::json;
 use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction, instruction::Instruction,
-    native_token::sol_to_lamports, pubkey::Pubkey, system_instruction,
+    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
+    native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction,
 };
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
     ASTRA_IRIS_MIN_TIP, ASTRA_REGIONS, ASTRA_TIP, AstraEndpoint, AstraRegionsType,
-    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, ping_all, ping_one,
+    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0, ping_all, ping_one,
 };
 
 #[derive(Debug)]
@@ -17,6 +17,19 @@ pub struct Astralane {
     pub client: Client,
     pub endpoint: AstraEndpoint,
     pub auth_key: String,
+}
+
+impl TransactionBuilder for Astralane {
+    fn build_v0(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+    ) -> String {
+        build_v0(ixs, fee_payer, signers, recent_blockhash, nonce_ix)
+    }
 }
 
 impl Astralane {

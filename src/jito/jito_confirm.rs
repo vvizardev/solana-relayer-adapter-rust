@@ -1,16 +1,15 @@
 use reqwest::Client;
 use serde_json::json;
-use solana_program::example_mocks::solana_sdk::system_instruction;
 use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction, instruction::Instruction,
-    native_token::sol_to_lamports, pubkey::Pubkey,
+    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
+    native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction,
 };
-use tokio::time::sleep;
 use std::time::{Duration, Instant};
+use tokio::time::sleep;
 
 use crate::{
     HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP, JitoEndpoint, JitoRegionsType,
-    PING_DURATION_SEC, Tips, ping_all, ping_one,
+    PING_DURATION_SEC, Tips, TransactionBuilder, build_v0, ping_all, ping_one,
 };
 
 #[derive(Debug)]
@@ -18,6 +17,19 @@ pub struct Jito {
     pub client: Client,
     pub endpoint: JitoEndpoint,
     pub auth_key: Option<String>,
+}
+
+impl TransactionBuilder for Jito {
+    fn build_v0(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+    ) -> String {
+        build_v0(ixs, fee_payer, signers, recent_blockhash, nonce_ix)
+    }
 }
 
 impl Jito {
