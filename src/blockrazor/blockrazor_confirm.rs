@@ -8,7 +8,8 @@ use std::time::{Duration, Instant};
 
 use crate::{
     BLOCKRAZOR_MIN_TIP, BLOCKRAZOR_TIP, BRAZOR_REGIONS, BRazorEndpoint, BRazorRegionsType,
-    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0, ping_all, ping_one,
+    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0_bs64, ping_all,
+    ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -19,7 +20,7 @@ pub struct BlockRazor {
 }
 
 impl TransactionBuilder for BlockRazor {
-    fn build_v0(
+    fn build_v0_bs64(
         &self,
         ixs: Vec<Instruction>,
         fee_payer: &Pubkey,
@@ -27,7 +28,26 @@ impl TransactionBuilder for BlockRazor {
         recent_blockhash: Hash,
         nonce_ix: Option<Instruction>,
     ) -> String {
-        build_v0(ixs, fee_payer, signers, recent_blockhash, nonce_ix)
+        build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix)
+    }
+
+    fn simulate(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+        rpc_endpoint: String,
+    ) {
+        simulate(
+            ixs,
+            fee_payer,
+            signers,
+            recent_blockhash,
+            nonce_ix,
+            rpc_endpoint,
+        );
     }
 }
 

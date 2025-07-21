@@ -8,8 +8,7 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP, JitoEndpoint, JitoRegionsType,
-    PING_DURATION_SEC, Tips, TransactionBuilder, build_v0, ping_all, ping_one,
+    build_v0_bs64, ping_all, ping_one, simulate, JitoEndpoint, JitoRegionsType, Tips, TransactionBuilder, HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP, PING_DURATION_SEC
 };
 
 #[derive(Debug)]
@@ -20,7 +19,7 @@ pub struct Jito {
 }
 
 impl TransactionBuilder for Jito {
-    fn build_v0(
+    fn build_v0_bs64(
         &self,
         ixs: Vec<Instruction>,
         fee_payer: &Pubkey,
@@ -28,7 +27,26 @@ impl TransactionBuilder for Jito {
         recent_blockhash: Hash,
         nonce_ix: Option<Instruction>,
     ) -> String {
-        build_v0(ixs, fee_payer, signers, recent_blockhash, nonce_ix)
+        build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix)
+    }
+
+    fn simulate(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+        rpc_endpoint: String,
+    ) {
+        simulate(
+            ixs,
+            fee_payer,
+            signers,
+            recent_blockhash,
+            nonce_ix,
+            rpc_endpoint,
+        );
     }
 }
 

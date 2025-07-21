@@ -1,15 +1,13 @@
 use reqwest::Client;
 use serde_json::json;
 use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction, instruction::Instruction,
-    native_token::sol_to_lamports, pubkey::Pubkey, system_instruction,
+    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction, native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction
 };
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    HEALTH_CHECK_SEC, NEXTBLOCK_MIN_TIP, NEXTBLOCK_REGIONS, NEXTBLOCK_TIP, NextBlockEndpoint,
-    NextBlockRegionsType, PING_DURATION_SEC, Tips, ping_all, ping_one,
+    build_v0_bs64, ping_all, ping_one, simulate, NextBlockEndpoint, NextBlockRegionsType, Tips, TransactionBuilder, HEALTH_CHECK_SEC, NEXTBLOCK_MIN_TIP, NEXTBLOCK_REGIONS, NEXTBLOCK_TIP, PING_DURATION_SEC
 };
 
 #[derive(Debug)]
@@ -17,6 +15,38 @@ pub struct NextBlock {
     pub client: Client,
     pub endpoint: NextBlockEndpoint,
     pub auth_key: String,
+}
+
+impl TransactionBuilder for NextBlock {
+    fn build_v0_bs64(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+    ) -> String {
+        build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix)
+    }
+
+    fn simulate(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+        rpc_endpoint: String,
+    ) {
+        simulate(
+            ixs,
+            fee_payer,
+            signers,
+            recent_blockhash,
+            nonce_ix,
+            rpc_endpoint,
+        );
+    }
 }
 
 impl NextBlock {

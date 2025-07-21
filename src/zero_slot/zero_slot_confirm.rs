@@ -1,15 +1,15 @@
 use reqwest::Client;
 use serde_json::json;
 use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction, instruction::Instruction,
-    native_token::sol_to_lamports, pubkey::Pubkey, system_instruction,
+    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
+    native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction,
 };
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, ZSLOT_MIN_TIP, ZSLOT_REGIONS, ZSLOT_TIP,
-    ZSlotEndpoint, ZSlotRegionsType, ping_all, ping_one,
+    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, TransactionBuilder, ZSLOT_MIN_TIP, ZSLOT_REGIONS,
+    ZSLOT_TIP, ZSlotEndpoint, ZSlotRegionsType, build_v0_bs64, ping_all, ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -17,6 +17,38 @@ pub struct ZeroSlot {
     pub client: Client,
     pub endpoint: ZSlotEndpoint,
     pub auth_key: String,
+}
+
+impl TransactionBuilder for ZeroSlot {
+    fn build_v0_bs64(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+    ) -> String {
+        build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix)
+    }
+
+    fn simulate(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+        rpc_endpoint: String,
+    ) {
+        simulate(
+            ixs,
+            fee_payer,
+            signers,
+            recent_blockhash,
+            nonce_ix,
+            rpc_endpoint,
+        );
+    }
 }
 
 impl ZeroSlot {
