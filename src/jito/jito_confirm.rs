@@ -8,7 +8,9 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    build_v0_bs64, ping_all, ping_one, simulate, JitoEndpoint, JitoRegionsType, Tips, TransactionBuilder, HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP, PING_DURATION_SEC
+    GetBundleStatusesResponse, HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP,
+    JitoEndpoint, JitoRegionsType, JsonRpcResponse, PING_DURATION_SEC, Tips, TransactionBuilder,
+    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -182,10 +184,17 @@ impl Jito {
         ixs
     }
 
-    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
+    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<JsonRpcResponse> {
         let start = Instant::now();
 
-        let url = format!("{}", self.endpoint.submit_endpoint);
+        let url = if let Some(auth_key) = &self.auth_key {
+            format!(
+                "{}/api/v1/transactions?uuid={}",
+                self.endpoint.submit_endpoint, auth_key
+            )
+        } else {
+            format!("{}/api/v1/transactions", self.endpoint.submit_endpoint)
+        };
 
         let payload = json!({
             "jsonrpc": "2.0",
@@ -196,37 +205,52 @@ impl Jito {
 
         let response = self.client.post(url).json(&payload).send().await?;
 
-        let data: serde_json::Value = response.json().await?;
+        let response: JsonRpcResponse = response.json().await?;
 
         // ################### TIME LOG ###################
 
         let elapsed = start.elapsed();
-        let secs = elapsed.as_secs();
-        let nanos = elapsed.subsec_nanos();
 
-        let seconds = secs;
-        let millis = nanos / 1_000_000;
-        let micros = (nanos % 1_000_000) / 1_000;
+        println!("Transaction submission took: {}", format_elapsed(elapsed));
 
-        let mut parts = vec![];
+        Ok(response)
+    }
 
-        if seconds > 0 {
-            parts.push(format!("{}s", seconds));
-        }
-        if millis > 0 {
-            parts.push(format!("{}ms", millis));
-        }
-        if micros > 0 && millis == 0 {
-            // Only show µs if ms == 0 to avoid redundancy
-            parts.push(format!("{}µs", micros));
-        }
+    pub async fn send_bundle(
+        &self,
+        encoded_txs: &[String],
+    ) -> anyhow::Result<GetBundleStatusesResponse> {
+        let start = Instant::now();
 
-        if parts.is_empty() {
-            parts.push("0µs".to_string()); // fallback if literally nothing
-        }
+        let url = if let Some(auth_key) = &self.auth_key {
+            format!(
+                "{}/api/v1/bundles?uuid={}",
+                self.endpoint.submit_endpoint, auth_key
+            )
+        } else {
+            format!("{}/api/v1/bundles", self.endpoint.submit_endpoint)
+        };
 
-        println!("Transaction submission took: {}", parts.join(" : "));
+        let payload = json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "sendTransaction",
+            "params": [encoded_txs, {"encoding": "base64"}]
+        });
 
-        Ok(data)
+        let response = self.client.post(url).json(&payload).send().await?;
+        let json = response.text().await?; // <-- raw JSON string
+        
+        println!("Raw response: {}", json); // optional debug
+
+        let parsed: GetBundleStatusesResponse = serde_json::from_str(&json)?;
+
+        // ################### TIME LOG ###################
+
+        let elapsed = start.elapsed();
+
+        println!("Transaction submission took: {}", format_elapsed(elapsed));
+
+        Ok(parsed)
     }
 }

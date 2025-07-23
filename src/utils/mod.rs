@@ -1,8 +1,12 @@
 pub mod build;
 pub mod ping;
+pub mod return_type;
 pub mod services;
 pub mod tip;
+pub mod time_elapsed;
 pub use build::*;
 pub use ping::*;
+pub use return_type::*;
 pub use services::*;
 pub use tip::*;
+pub use time_elapsed::*;
