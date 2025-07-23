@@ -1,13 +1,16 @@
 use reqwest::Client;
 use serde_json::json;
 use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction, native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction
+    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
+    native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction,
 };
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    build_v0_bs64, ping_all, ping_one, simulate, NextBlockEndpoint, NextBlockRegionsType, Tips, TransactionBuilder, HEALTH_CHECK_SEC, NEXTBLOCK_MIN_TIP, NEXTBLOCK_REGIONS, NEXTBLOCK_TIP, PING_DURATION_SEC
+    HEALTH_CHECK_SEC, NEXTBLOCK_MIN_TIP, NEXTBLOCK_REGIONS, NEXTBLOCK_TIP, NextBlockConfirmSetting,
+    NextBlockEndpoint, NextBlockRegionsType, PING_DURATION_SEC, Tips, TransactionBuilder,
+    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -179,16 +182,24 @@ impl NextBlock {
     pub async fn send_transaction(
         &self,
         encoded_tx: &str,
-        front_running_protection: bool,
+        additional_setting: Option<NextBlockConfirmSetting>,
     ) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
-        let payload = json!({
-            "transaction": {
-                "content": encoded_tx
-            },
-            "frontRunningProtection": front_running_protection
-        });
+        let payload = if let Some(setting) = additional_setting {
+            json!({
+                "transaction": {
+                    "content": encoded_tx
+                },
+                "frontRunningProtection": setting.front_running_protection
+            })
+        } else {
+            json!({
+                "transaction": {
+                    "content": encoded_tx
+                }
+            })
+        };
 
         // Send POST request
         let response = self
@@ -204,31 +215,11 @@ impl NextBlock {
         // ################### TIME LOG ###################
 
         let elapsed = start.elapsed();
-        let secs = elapsed.as_secs();
-        let nanos = elapsed.subsec_nanos();
 
-        let seconds = secs;
-        let millis = nanos / 1_000_000;
-        let micros = (nanos % 1_000_000) / 1_000;
-
-        let mut parts = vec![];
-
-        if seconds > 0 {
-            parts.push(format!("{}s", seconds));
-        }
-        if millis > 0 {
-            parts.push(format!("{}ms", millis));
-        }
-        if micros > 0 && millis == 0 {
-            // Only show µs if ms == 0 to avoid redundancy
-            parts.push(format!("{}µs", micros));
-        }
-
-        if parts.is_empty() {
-            parts.push("0µs".to_string()); // fallback if literally nothing
-        }
-
-        println!("Transaction submission took: {}", parts.join(" : "));
+        println!(
+            "Transaction (NextBlock) submission took: {}",
+            format_elapsed(elapsed)
+        );
 
         Ok(data)
     }

@@ -8,9 +8,9 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    GetBundleStatusesResponse, HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP,
-    JitoEndpoint, JitoRegionsType, JsonRpcResponse, PING_DURATION_SEC, Tips, TransactionBuilder,
-    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate,
+    HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP, JitoEndpoint, JitoRegionsType,
+    JsonRpcResponse, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0_bs64, format_elapsed,
+    ping_all, ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -211,7 +211,10 @@ impl Jito {
 
         let elapsed = start.elapsed();
 
-        println!("Transaction submission took: {}", format_elapsed(elapsed));
+        println!(
+            "Transaction (Jito) submission took: {}",
+            format_elapsed(elapsed)
+        );
 
         Ok(response)
     }
@@ -219,7 +222,7 @@ impl Jito {
     pub async fn send_bundle(
         &self,
         encoded_txs: &[String],
-    ) -> anyhow::Result<GetBundleStatusesResponse> {
+    ) -> anyhow::Result<JsonRpcResponse> {
         let start = Instant::now();
 
         let url = if let Some(auth_key) = &self.auth_key {
@@ -234,16 +237,16 @@ impl Jito {
         let payload = json!({
             "jsonrpc": "2.0",
             "id": 1,
-            "method": "sendTransaction",
+            "method": "sendBundle",
             "params": [encoded_txs, {"encoding": "base64"}]
         });
 
         let response = self.client.post(url).json(&payload).send().await?;
         let json = response.text().await?; // <-- raw JSON string
-        
+
         println!("Raw response: {}", json); // optional debug
 
-        let parsed: GetBundleStatusesResponse = serde_json::from_str(&json)?;
+        let parsed: JsonRpcResponse = serde_json::from_str(&json)?;
 
         // ################### TIME LOG ###################
 

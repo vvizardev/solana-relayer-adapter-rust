@@ -8,7 +8,9 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    build_v0_bs64, ping_all, ping_one, simulate, NozomiEndpoint, NozomiRegionsType, Tips, TransactionBuilder, HEALTH_CHECK_SEC, NOZOMI_MIN_TIP, NOZOMI_REGIONS, NOZOMI_TIP, PING_DURATION_SEC
+    HEALTH_CHECK_SEC, JsonRpcResponse, NOZOMI_MIN_TIP, NOZOMI_REGIONS, NOZOMI_TIP, NozomiEndpoint,
+    NozomiRegionsType, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0_bs64, format_elapsed,
+    ping_all, ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -177,7 +179,7 @@ impl Nozomi {
         ixs
     }
 
-    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
+    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<JsonRpcResponse> {
         let start = Instant::now();
 
         let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
@@ -191,37 +193,17 @@ impl Nozomi {
 
         let response = self.client.post(url).json(&payload).send().await?;
 
-        let data: serde_json::Value = response.json().await?;
+        let response: JsonRpcResponse = response.json().await?;
 
         // ################### TIME LOG ###################
 
         let elapsed = start.elapsed();
-        let secs = elapsed.as_secs();
-        let nanos = elapsed.subsec_nanos();
 
-        let seconds = secs;
-        let millis = nanos / 1_000_000;
-        let micros = (nanos % 1_000_000) / 1_000;
+        println!(
+            "Transaction (Nozomi) submission took: {}",
+            format_elapsed(elapsed)
+        );
 
-        let mut parts = vec![];
-
-        if seconds > 0 {
-            parts.push(format!("{}s", seconds));
-        }
-        if millis > 0 {
-            parts.push(format!("{}ms", millis));
-        }
-        if micros > 0 && millis == 0 {
-            // Only show µs if ms == 0 to avoid redundancy
-            parts.push(format!("{}µs", micros));
-        }
-
-        if parts.is_empty() {
-            parts.push("0µs".to_string()); // fallback if literally nothing
-        }
-
-        println!("Transaction submission took: {}", parts.join(" : "));
-
-        Ok(data)
+        Ok(response)
     }
 }
