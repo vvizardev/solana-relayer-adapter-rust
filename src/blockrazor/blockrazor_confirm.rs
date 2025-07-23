@@ -1,15 +1,17 @@
-use reqwest::Client;
+use reqwest::{
+    Client,
+    header::{CONTENT_TYPE, HeaderMap, HeaderValue},
+};
 use serde_json::json;
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
     native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction,
 };
 use std::time::{Duration, Instant};
+use tokio::time::sleep;
 
 use crate::{
-    BLOCKRAZOR_MIN_TIP, BLOCKRAZOR_TIP, BRAZOR_REGIONS, BRazorEndpoint, BRazorRegionsType,
-    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0_bs64, format_elapsed,
-    ping_all, ping_one, simulate,
+    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate, BRazorEndpoint, BRazorRegionsType, HealthResponse, JsonRpcResponse, Tips, TransactionBuilder, BLOCKRAZOR_MIN_TIP, BLOCKRAZOR_TIP, BRAZOR_REGIONS, HEALTH_CHECK_SEC, PING_DURATION_SEC
 };
 
 #[derive(Debug)]
@@ -121,38 +123,46 @@ impl BlockRazor {
     }
 
     pub fn health_check(&self, interval_sec: u64) {
-        // let client = self.client.clone();
-        // let endpoint = self.endpoint.clone();
-        // let relayer_name = endpoint.relayer_name.clone();
-        // let rpc_url = format!("https://{}", endpoint.ping_endpoint.clone());
+        let client = self.client.clone();
+        let endpoint = self.endpoint.clone();
+        let relayer_name = endpoint.relayer_name.clone();
+        let auth_key = self.auth_key.clone();
+        let url = format!("{}/health", self.endpoint.submit_endpoint);
 
-        // tokio::spawn(async move {
-        //     let payload = json!({
-        //         "jsonrpc": "2.0",
-        //         "id": 1,
-        //         "method": "getHealth"
-        //     });
+        tokio::spawn(async move {
+            loop {
+                let result = async {
+                    let response = client
+                        .get(&url)
+                        .header("Content-Type", "application/json")
+                        .header("apikey", &auth_key)
+                        .send()
+                        .await?;
 
-        //     loop {
-        //         match client.post(&rpc_url).json(&payload).send().await {
-        //             Ok(response) if response.status().is_success() => {
-        //                 println!("{} health check successful", relayer_name);
-        //             }
-        //             Ok(response) => {
-        //                 eprintln!(
-        //                     "{} health check failed with status: {}",
-        //                     relayer_name,
-        //                     response.status()
-        //                 );
-        //             }
-        //             Err(err) => {
-        //                 eprintln!("{} health check request error: {:?}", relayer_name, err);
-        //             }
-        //         }
+                    let body = response.text().await?;
+                    println!("Raw health response: {}", body);
 
-        //         sleep(Duration::from_secs(interval_sec)).await;
-        //     }
-        // });
+                    let parsed: Result<HealthResponse, _> = serde_json::from_str(&body);
+                    if let Ok(hr) = parsed {
+                        println!("Health result [{}]: {}", relayer_name, hr.result);
+                    } else {
+                        println!(
+                            "Failed to parse health response from {}: {}",
+                            relayer_name, body
+                        );
+                    }
+
+                    Ok::<(), anyhow::Error>(())
+                }
+                .await;
+
+                if let Err(e) = result {
+                    eprintln!("Health check error [{}]: {}", relayer_name, e);
+                }
+
+                sleep(Duration::from_secs(interval_sec)).await;
+            }
+        });
     }
 
     pub fn add_tip_ix(&self, tip_config: Tips) -> Vec<Instruction> {
@@ -183,11 +193,11 @@ impl BlockRazor {
         ixs
     }
 
-    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
+    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<JsonRpcResponse> {
         let start = Instant::now();
 
         let client = Client::new();
-        let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
+        let url = format!("{}/sendTransaction", self.endpoint.submit_endpoint);
 
         let payload = json!({
             "transaction": {
@@ -204,7 +214,11 @@ impl BlockRazor {
             .send()
             .await?;
 
-        let json: serde_json::Value = response.json().await?;
+        let body = response.text().await?;
+        println!("Raw response body:\n{}", body);
+
+        // Parse and return response body as JSON
+        let response: JsonRpcResponse = serde_json::from_str(&body)?;
 
         // ################### TIME LOG ###################
 
@@ -215,6 +229,6 @@ impl BlockRazor {
             format_elapsed(elapsed)
         );
 
-        Ok(json)
+        Ok(response)
     }
 }

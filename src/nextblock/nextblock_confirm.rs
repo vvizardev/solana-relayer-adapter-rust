@@ -1,5 +1,5 @@
 use reqwest::Client;
-use serde_json::json;
+use serde_json::{Value, json};
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
     native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction,
@@ -8,9 +8,9 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    HEALTH_CHECK_SEC, NEXTBLOCK_MIN_TIP, NEXTBLOCK_REGIONS, NEXTBLOCK_TIP, NextBlockConfirmSetting,
-    NextBlockEndpoint, NextBlockRegionsType, PING_DURATION_SEC, Tips, TransactionBuilder,
-    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate,
+    HEALTH_CHECK_SEC, JsonRpcResponse, NEXTBLOCK_MIN_TIP, NEXTBLOCK_REGIONS, NEXTBLOCK_TIP,
+    NextBlockConfirmSetting, NextBlockEndpoint, NextBlockRegionsType, PING_DURATION_SEC, Tips,
+    TransactionBuilder, build_v0_bs64, format_elapsed, ping_all, ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -183,8 +183,10 @@ impl NextBlock {
         &self,
         encoded_tx: &str,
         additional_setting: Option<NextBlockConfirmSetting>,
-    ) -> anyhow::Result<serde_json::Value> {
+    ) -> anyhow::Result<JsonRpcResponse> {
         let start = Instant::now();
+
+        let url = format!("{}/api/v2/submit", self.endpoint.submit_endpoint);
 
         let payload = if let Some(setting) = additional_setting {
             json!({
@@ -204,14 +206,17 @@ impl NextBlock {
         // Send POST request
         let response = self
             .client
-            .post(self.endpoint.submit_endpoint)
+            .post(url)
             .header("Authorization", &self.auth_key)
             .json(&payload)
             .send()
             .await?;
 
+        let body = response.text().await?;
+        println!("Raw response body:\n{}", body);
+
         // Parse and return response body as JSON
-        let data: serde_json::Value = response.json().await?;
+        let response: JsonRpcResponse = serde_json::from_str(&body)?;
         // ################### TIME LOG ###################
 
         let elapsed = start.elapsed();
@@ -221,6 +226,51 @@ impl NextBlock {
             format_elapsed(elapsed)
         );
 
-        Ok(data)
+        Ok(response)
+    }
+
+    pub async fn send_bundle(&self, encoded_txs: &[String]) -> anyhow::Result<JsonRpcResponse> {
+        let start = Instant::now();
+
+        let url = format!("{}/api/v2/submit-batch", self.endpoint.submit_endpoint);
+
+        let entries: Vec<Value> = encoded_txs
+            .iter()
+            .map(|tx| {
+                json!({
+                    "transaction": {
+                        "content": tx
+                    }
+                })
+            })
+            .collect();
+
+        let payload = json!({ "entries": entries });
+
+        // Send POST request
+        let response = self
+            .client
+            .post(url)
+            .header("Authorization", &self.auth_key)
+            .json(&payload)
+            .send()
+            .await?;
+
+        // ✅ Get and display raw body
+        let body = response.text().await?;
+        println!("Raw response body:\n{}", body);
+
+        // Parse and return response body as JSON
+        let response: JsonRpcResponse = serde_json::from_str(&body)?;
+        // ################### TIME LOG ###################
+
+        let elapsed = start.elapsed();
+
+        println!(
+            "Transaction (NextBlock) submission took: {}",
+            format_elapsed(elapsed)
+        );
+
+        Ok(response)
     }
 }

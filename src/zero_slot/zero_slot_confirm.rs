@@ -8,7 +8,9 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate, Tips, TransactionBuilder, ZSlotEndpoint, ZSlotRegionsType, HEALTH_CHECK_SEC, PING_DURATION_SEC, ZSLOT_MIN_TIP, ZSLOT_REGIONS, ZSLOT_TIP
+    HEALTH_CHECK_SEC, JsonRpcResponse, PING_DURATION_SEC, Tips, TransactionBuilder, ZSLOT_MIN_TIP,
+    ZSLOT_REGIONS, ZSLOT_TIP, ZSlotEndpoint, ZSlotRegionsType, build_v0_bs64, format_elapsed,
+    ping_all, ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -182,7 +184,7 @@ impl ZeroSlot {
         ixs
     }
 
-    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
+    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<JsonRpcResponse> {
         let start = Instant::now();
 
         let client = Client::new();
@@ -205,17 +207,21 @@ impl ZeroSlot {
             .send()
             .await?;
 
-        let json: serde_json::Value = response.json().await?;
+        let body = response.text().await?;
+        println!("Raw response body:\n{}", body);
+
+        // Parse and return response body as JSON
+        let response: JsonRpcResponse = serde_json::from_str(&body)?;
 
         // ################### TIME LOG ###################
 
         let elapsed = start.elapsed();
-        
+
         println!(
             "Transaction (ZeroSlot) submission took: {}",
             format_elapsed(elapsed)
         );
 
-        Ok(json)
+        Ok(response)
     }
 }

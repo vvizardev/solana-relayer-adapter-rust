@@ -205,7 +205,11 @@ impl Jito {
 
         let response = self.client.post(url).json(&payload).send().await?;
 
-        let response: JsonRpcResponse = response.json().await?;
+        let body = response.text().await?;
+        println!("Raw response body:\n{}", body);
+
+        // Parse and return response body as JSON
+        let response: JsonRpcResponse = serde_json::from_str(&body)?;
 
         // ################### TIME LOG ###################
 
@@ -219,10 +223,7 @@ impl Jito {
         Ok(response)
     }
 
-    pub async fn send_bundle(
-        &self,
-        encoded_txs: &[String],
-    ) -> anyhow::Result<JsonRpcResponse> {
+    pub async fn send_bundle(&self, encoded_txs: &[String]) -> anyhow::Result<JsonRpcResponse> {
         let start = Instant::now();
 
         let url = if let Some(auth_key) = &self.auth_key {
@@ -242,11 +243,11 @@ impl Jito {
         });
 
         let response = self.client.post(url).json(&payload).send().await?;
-        let json = response.text().await?; // <-- raw JSON string
+        let body = response.text().await?;
+        println!("Raw response body:\n{}", body);
 
-        println!("Raw response: {}", json); // optional debug
-
-        let parsed: JsonRpcResponse = serde_json::from_str(&json)?;
+        // Parse and return response body as JSON
+        let response: JsonRpcResponse = serde_json::from_str(&body)?;
 
         // ################### TIME LOG ###################
 
@@ -254,6 +255,6 @@ impl Jito {
 
         println!("Transaction submission took: {}", format_elapsed(elapsed));
 
-        Ok(parsed)
+        Ok(response)
     }
 }

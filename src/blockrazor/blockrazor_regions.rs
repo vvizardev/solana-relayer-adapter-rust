@@ -23,25 +23,25 @@ pub const BRAZOR_REGIONS: &[BRazorEndpoint] = &[
     blockrazor_endpoint!(
         NewYork,
         "BlockRazor-NewYork",
-        "http://newyork.solana.blockrazor.xyz:443/sendTransaction",
+        "http://newyork.solana.blockrazor.xyz:443",
         "newyork.solana.blockrazor.xyz"
     ),
     blockrazor_endpoint!(
         Frankfurt,
         "BlockRazor-Frankfurt",
-        "http://frankfurt.solana.blockrazor.xyz:443/sendTransaction",
+        "http://frankfurt.solana.blockrazor.xyz:443",
         "frankfurt.solana.blockrazor.xyz"
     ),
     blockrazor_endpoint!(
         AMS,
         "BlockRazor-AMS",
-        "http://amsterdam.solana.blockrazor.xyz:443/sendTransaction",
+        "http://amsterdam.solana.blockrazor.xyz:443",
         "amsterdam.solana.blockrazor.xyz"
     ),
     blockrazor_endpoint!(
         Tokyo,
         "BlockRazor-Tokyo",
-        "http://tokyo.solana.blockrazor.xyz:443/sendTransaction",
+        "http://tokyo.solana.blockrazor.xyz:443",
         "tokyo.solana.blockrazor.xyz"
     ),
 ];

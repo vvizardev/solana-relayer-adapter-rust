@@ -21,13 +21,13 @@ pub const NEXTBLOCK_REGIONS: &[NextBlockEndpoint] = &[
     nextblock_endpoint!(
         Fra,
         "Nextblock-Fra",
-        "https://fra.nextblock.io/api/v2/submit",
+        "https://fra.nextblock.io",
         "fra.nextblock.io"
     ),
     nextblock_endpoint!(
         NY,
         "Nextblock-Fra",
-        "https://fra.nextblock.io/api/v2/submit",
+        "https://fra.nextblock.io",
         "fra.nextblock.io"
     ),
 ];
