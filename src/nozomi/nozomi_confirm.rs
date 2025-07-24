@@ -202,10 +202,7 @@ impl Nozomi {
                 id: 1,
                 jsonrpc: "2.0".to_string(), // or "" if you prefer
                 result: None,
-                error: Some(JsonRpcError {
-                    code : 1,
-                    message: body.clone(), // make sure `message` is in scope
-                }),
+                error: Some(body.clone()),
             }
         });
 
