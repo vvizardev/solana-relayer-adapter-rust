@@ -8,9 +8,9 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    HEALTH_CHECK_SEC, JsonRpcResponse, NOZOMI_MIN_TIP, NOZOMI_REGIONS, NOZOMI_TIP, NozomiEndpoint,
-    NozomiRegionsType, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0_bs64, format_elapsed,
-    ping_all, ping_one, simulate,
+    HEALTH_CHECK_SEC, JsonRpcError, JsonRpcResponse, NOZOMI_MIN_TIP, NOZOMI_REGIONS, NOZOMI_TIP,
+    NozomiEndpoint, NozomiRegionsType, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0_bs64,
+    format_elapsed, ping_all, ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -197,7 +197,17 @@ impl Nozomi {
         println!("Raw response body:\n{}", body);
 
         // Parse and return response body as JSON
-        let response: JsonRpcResponse = serde_json::from_str(&body)?;
+        let response: JsonRpcResponse = serde_json::from_str(&body).unwrap_or_else(|_| {
+            JsonRpcResponse {
+                id: 1,
+                jsonrpc: "2.0".to_string(), // or "" if you prefer
+                result: None,
+                error: Some(JsonRpcError {
+                    code : 1,
+                    message: body.clone(), // make sure `message` is in scope
+                }),
+            }
+        });
 
         // ################### TIME LOG ###################
 
