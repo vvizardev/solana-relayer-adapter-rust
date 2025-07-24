@@ -11,7 +11,9 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate, BRazorEndpoint, BRazorRegionsType, BlockRazorResponse, HealthResponse, JsonRpcResponse, Tips, TransactionBuilder, BLOCKRAZOR_MIN_TIP, BLOCKRAZOR_TIP, BRAZOR_REGIONS, HEALTH_CHECK_SEC, PING_DURATION_SEC
+    BLOCKRAZOR_MIN_TIP, BLOCKRAZOR_TIP, BRAZOR_REGIONS, BRazorEndpoint, BRazorRegionsType,
+    BlockRazorResponse, HEALTH_CHECK_SEC, HealthResponse, JsonRpcResponse, PING_DURATION_SEC, Tips,
+    TransactionBuilder, build_v0_bs64, format_elapsed, ping_all, ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -200,10 +202,15 @@ impl BlockRazor {
         let url = format!("{}/sendTransaction", self.endpoint.submit_endpoint);
 
         let payload = json!({
-            "transaction": {
-                "content": encoded_tx,
-                "mode": "fast"
-            },
+            "jsonrpc": "2.0",
+               "id": 1,
+               "method": "sendTransaction",
+               "params":{
+                 "transaction": {
+                    "content": encoded_tx,
+                    "mode": "fast"
+                }
+            }
         });
 
         let response = client

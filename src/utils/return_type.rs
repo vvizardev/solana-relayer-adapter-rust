@@ -11,6 +11,6 @@ pub struct JsonRpcResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct BlockRazorResponse {
-    pub signature: Option<String>,
-    pub error: Option<String>,
+    pub signature: String,
+    pub error: String,
 }
