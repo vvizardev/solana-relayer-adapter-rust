@@ -202,15 +202,8 @@ impl BlockRazor {
         let url = format!("{}/sendTransaction", self.endpoint.submit_endpoint);
 
         let payload = json!({
-            "jsonrpc": "2.0",
-               "id": 1,
-               "method": "sendTransaction",
-               "params":{
-                 "transaction": {
-                    "content": encoded_tx,
-                    "mode": "fast"
-                }
-            }
+                "transaction": encoded_tx,
+                "mode": "fast"
         });
 
         let response = client
