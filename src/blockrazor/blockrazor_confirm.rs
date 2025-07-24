@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate, BRazorEndpoint, BRazorRegionsType, HealthResponse, JsonRpcResponse, Tips, TransactionBuilder, BLOCKRAZOR_MIN_TIP, BLOCKRAZOR_TIP, BRAZOR_REGIONS, HEALTH_CHECK_SEC, PING_DURATION_SEC
+    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate, BRazorEndpoint, BRazorRegionsType, BlockRazorResponse, HealthResponse, JsonRpcResponse, Tips, TransactionBuilder, BLOCKRAZOR_MIN_TIP, BLOCKRAZOR_TIP, BRAZOR_REGIONS, HEALTH_CHECK_SEC, PING_DURATION_SEC
 };
 
 #[derive(Debug)]
@@ -193,7 +193,7 @@ impl BlockRazor {
         ixs
     }
 
-    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<JsonRpcResponse> {
+    pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<BlockRazorResponse> {
         let start = Instant::now();
 
         let client = Client::new();
@@ -218,7 +218,7 @@ impl BlockRazor {
         println!("Raw response body:\n{}", body);
 
         // Parse and return response body as JSON
-        let response: JsonRpcResponse = serde_json::from_str(&body)?;
+        let response: BlockRazorResponse = serde_json::from_str(&body)?;
 
         // ################### TIME LOG ###################
 
