@@ -206,7 +206,7 @@ impl Jito {
         let response = self.client.post(url).json(&payload).send().await?;
 
         let body = response.text().await?;
-        println!("Raw response body:\n{}", body);
+        println!("Raw response body:\n{:#?}", body);
 
         // Parse and return response body as JSON
         let response: JsonRpcResponse = serde_json::from_str(&body)?;
