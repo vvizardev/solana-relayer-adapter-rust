@@ -2,7 +2,7 @@ use solana_client::rpc_client::RpcClient;
 use solana_sdk::{
     hash::Hash,
     instruction::Instruction,
-    message::{VersionedMessage, v0::Message},
+    message::{v0::Message, AddressLookupTableAccount, VersionedMessage},
     pubkey::Pubkey,
     signature::Keypair,
     transaction::{Transaction, VersionedTransaction},
@@ -14,12 +14,13 @@ pub fn build_v0_bs64(
     signers: &Vec<&Keypair>,
     recent_blockhash: Hash,
     nonce_ix: Option<Instruction>,
+    alt: Vec<AddressLookupTableAccount>,
 ) -> String {
     if let Some(nonce_instruction) = nonce_ix {
         ixs.insert(0, nonce_instruction);
     }
 
-    let message: Message = Message::try_compile(fee_payer, &ixs, &[], recent_blockhash)
+    let message: Message = Message::try_compile(fee_payer, &ixs, &alt, recent_blockhash)
         .expect("Failed to compile message");
     let versioned_message = VersionedMessage::V0(message);
     let txn = VersionedTransaction::try_new(versioned_message, signers)
@@ -61,6 +62,7 @@ pub trait TransactionBuilder {
         signers: &Vec<&Keypair>,
         recent_blockhash: Hash,
         nonce_ix: Option<Instruction>,
+        alt: Vec<AddressLookupTableAccount>,
     ) -> String;
 
     fn simulate(

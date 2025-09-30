@@ -1,25 +1,25 @@
 use reqwest::Client;
 use serde_json::json;
 use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction, message::AddressLookupTableAccount, native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction
+    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
+    message::AddressLookupTableAccount, native_token::sol_to_lamports, pubkey::Pubkey,
+    signature::Keypair, system_instruction,
 };
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    HEALTH_CHECK_SEC, JsonRpcResponse, NOZOMI_MIN_TIP, NOZOMI_REGIONS, NOZOMI_TIP, NozomiEndpoint,
-    NozomiRegionsType, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0_bs64, format_elapsed,
-    ping_all, ping_one, simulate,
+    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate, HeliusEndpoint, HeliusRegionsType, JsonRpcResponse, Tips, TransactionBuilder, HEALTH_CHECK_SEC, HELIUS_MIN_TIP, HELIUS_REGIONS, HELIUS_TIP, PING_DURATION_SEC
 };
 
 #[derive(Debug)]
-pub struct Nozomi {
+pub struct Helius {
     pub client: Client,
-    pub endpoint: NozomiEndpoint,
+    pub endpoint: HeliusEndpoint,
     pub auth_key: String,
 }
 
-impl TransactionBuilder for Nozomi {
+impl TransactionBuilder for Helius {
     fn build_v0_bs64(
         &self,
         ixs: Vec<Instruction>,
@@ -52,9 +52,9 @@ impl TransactionBuilder for Nozomi {
     }
 }
 
-impl Nozomi {
-    pub async fn new_with_region(region: NozomiRegionsType, auth_key: String) -> Self {
-        let endpoint = NOZOMI_REGIONS
+impl Helius {
+    pub async fn new_with_region(region: HeliusRegionsType, auth_key: String) -> Self {
+        let endpoint = HELIUS_REGIONS
             .iter()
             .find(|r| r.relayer == region)
             .expect("Region not found")
@@ -82,7 +82,7 @@ impl Nozomi {
     }
 
     pub async fn new_auto(auth_key: String) -> Self {
-        let regions: Vec<(String, String)> = NOZOMI_REGIONS
+        let regions: Vec<(String, String)> = HELIUS_REGIONS
             .iter()
             .map(|r| (r.relayer_name.to_string(), r.ping_endpoint.to_string()))
             .collect();
@@ -92,10 +92,10 @@ impl Nozomi {
 
         // Step 2: Use fastest or fallback
         let endpoint = fastest_index
-            .map(|i| NOZOMI_REGIONS[i].clone())
+            .map(|i| HELIUS_REGIONS[i].clone())
             .unwrap_or_else(|| {
                 println!("All region pings failed, falling back to first region.");
-                NOZOMI_REGIONS[0].clone()
+                HELIUS_REGIONS[0].clone()
             });
 
         println!("Connecting with {} ...", endpoint.relayer_name);
@@ -166,9 +166,9 @@ impl Nozomi {
 
         ixs.extend(tip_config.pure_ix.clone());
 
-        let relayer_fee = tip_config.tip_sol_amount.max(NOZOMI_MIN_TIP); // use `.max()` for clarity
+        let relayer_fee = tip_config.tip_sol_amount.max(HELIUS_MIN_TIP); // use `.max()` for clarity
 
-        let recipient = Pubkey::from_str_const(NOZOMI_TIP[tip_config.tip_addr_idx as usize]);
+        let recipient = Pubkey::from_str_const(HELIUS_TIP[tip_config.tip_addr_idx as usize]);
         let transfer_ix = system_instruction::transfer(
             &tip_config.payer,
             &recipient,

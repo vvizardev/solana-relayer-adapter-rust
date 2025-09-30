@@ -5,7 +5,8 @@ use reqwest::{
 use serde_json::json;
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
-    native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction,
+    message::AddressLookupTableAccount, native_token::sol_to_lamports, pubkey::Pubkey,
+    signature::Keypair, system_instruction,
 };
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
@@ -31,8 +32,9 @@ impl TransactionBuilder for BlockRazor {
         signers: &Vec<&Keypair>,
         recent_blockhash: Hash,
         nonce_ix: Option<Instruction>,
+        alt: Vec<AddressLookupTableAccount>,
     ) -> String {
-        build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix)
+        build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix, alt)
     }
 
     fn simulate(

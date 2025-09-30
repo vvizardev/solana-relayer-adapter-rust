@@ -1,14 +1,15 @@
 use reqwest::Client;
 use serde_json::json;
 use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
-    native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction,
+    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction, message::AddressLookupTableAccount, native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction
 };
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use crate::{
-    build_v0_bs64, format_elapsed, ping_all, ping_one, simulate, AstraEndpoint, AstraRegionsType, Tips, TransactionBuilder, ASTRA_IRIS_MIN_TIP, ASTRA_REGIONS, ASTRA_TIP, HEALTH_CHECK_SEC, PING_DURATION_SEC
+    ASTRA_IRIS_MIN_TIP, ASTRA_REGIONS, ASTRA_TIP, AstraEndpoint, AstraRegionsType,
+    HEALTH_CHECK_SEC, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0_bs64, format_elapsed,
+    ping_all, ping_one, simulate,
 };
 
 #[derive(Debug)]
@@ -26,8 +27,9 @@ impl TransactionBuilder for Astralane {
         signers: &Vec<&Keypair>,
         recent_blockhash: Hash,
         nonce_ix: Option<Instruction>,
+        alt: Vec<AddressLookupTableAccount>,
     ) -> String {
-        build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix)
+        build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix, alt)
     }
 
     fn simulate(
@@ -197,7 +199,10 @@ impl Astralane {
 
         let elapsed = start.elapsed();
 
-        println!("Transaction (Astra) submission took: {}", format_elapsed(elapsed));
+        println!(
+            "Transaction (Astra) submission took: {}",
+            format_elapsed(elapsed)
+        );
 
         Ok(data)
     }

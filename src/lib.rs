@@ -1,5 +1,6 @@
 pub mod astralane;
 pub mod blockrazor;
+pub mod helius;
 pub mod jito;
 pub mod nextblock;
 pub mod nozomi;
@@ -7,6 +8,7 @@ pub mod utils;
 pub mod zero_slot;
 pub use astralane::*;
 pub use blockrazor::*;
+pub use helius::*;
 pub use jito::*;
 pub use nextblock::*;
 pub use nozomi::*;
