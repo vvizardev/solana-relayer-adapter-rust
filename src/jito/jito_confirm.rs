@@ -1,7 +1,9 @@
 use reqwest::Client;
 use serde_json::json;
 use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction, message::AddressLookupTableAccount, native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction
+    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
+    message::AddressLookupTableAccount, native_token::sol_to_lamports, pubkey::Pubkey,
+    signature::Keypair, system_instruction,
 };
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
@@ -78,6 +80,27 @@ impl Jito {
                 .expect("Failed to build Jito HTTP client"),
             endpoint,
             auth_key,
+        }
+    }
+
+    pub async fn new_with_liljit(endpoint: String) -> Self {
+        // Permanently leak the strings into static memory
+        let submit_endpoint: &'static str = Box::leak(endpoint.clone().into_boxed_str());
+        let ping_endpoint: &'static str =
+            Box::leak(endpoint.replace("https://", "").into_boxed_str());
+
+        Self {
+            client: Client::builder()
+                .tcp_keepalive(Duration::from_secs(HEALTH_CHECK_SEC))
+                .build()
+                .expect("Failed to build Jito HTTP client"),
+            endpoint: JitoEndpoint {
+                relayer: JitoRegionsType::Mainnet,
+                relayer_name: "LilJit",
+                submit_endpoint,
+                ping_endpoint,
+            },
+            auth_key: None,
         }
     }
 
