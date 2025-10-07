@@ -255,7 +255,11 @@ impl Jito {
                 self.endpoint.submit_endpoint, auth_key
             )
         } else {
-            format!("{}/api/v1/bundles", self.endpoint.submit_endpoint)
+            if self.endpoint.relayer_name == "LilJit" {
+                format!("{}", self.endpoint.submit_endpoint)
+            } else {
+                format!("{}/api/v1/bundles", self.endpoint.submit_endpoint)
+            }
         };
 
         let payload = json!({
