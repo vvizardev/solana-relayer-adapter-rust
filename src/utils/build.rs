@@ -1,8 +1,9 @@
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{
+    bs58,
     hash::Hash,
     instruction::Instruction,
-    message::{v0::Message, AddressLookupTableAccount, VersionedMessage},
+    message::{AddressLookupTableAccount, VersionedMessage, v0::Message},
     pubkey::Pubkey,
     signature::Keypair,
     transaction::{Transaction, VersionedTransaction},
@@ -28,6 +29,28 @@ pub fn build_v0_bs64(
 
     let serialized_tx = bincode::serialize(&txn).expect("Failed to serialize transaction");
     bs64::encode(&serialized_tx)
+}
+
+pub fn build_v0_bs58(
+    mut ixs: Vec<Instruction>,
+    fee_payer: &Pubkey,
+    signers: &Vec<&Keypair>,
+    recent_blockhash: Hash,
+    nonce_ix: Option<Instruction>,
+    alt: Vec<AddressLookupTableAccount>,
+) -> String {
+    if let Some(nonce_instruction) = nonce_ix {
+        ixs.insert(0, nonce_instruction);
+    }
+
+    let message: Message = Message::try_compile(fee_payer, &ixs, &alt, recent_blockhash)
+        .expect("Failed to compile message");
+    let versioned_message = VersionedMessage::V0(message);
+    let txn = VersionedTransaction::try_new(versioned_message, signers)
+        .expect("Failed to create transaction");
+
+    let serialized_tx = bincode::serialize(&txn).expect("Failed to serialize transaction");
+    bs58::encode(&serialized_tx).into_string()
 }
 
 pub fn simulate(
@@ -56,6 +79,16 @@ pub fn simulate(
 
 pub trait TransactionBuilder {
     fn build_v0_bs64(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+        alt: Vec<AddressLookupTableAccount>,
+    ) -> String;
+    
+    fn build_v0_bs58(
         &self,
         ixs: Vec<Instruction>,
         fee_payer: &Pubkey,

@@ -1,16 +1,14 @@
 use reqwest::Client;
 use serde_json::{Value, json};
 use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction, message::AddressLookupTableAccount, native_token::sol_to_lamports, pubkey::Pubkey, signature::Keypair, system_instruction
+    compute_budget::ComputeBudgetInstruction, hash::Hash, instruction::Instruction,
+    message::AddressLookupTableAccount, native_token::sol_to_lamports, pubkey::Pubkey,
+    signature::Keypair, system_instruction,
 };
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
-use crate::{
-    HEALTH_CHECK_SEC, JsonRpcResponse, NEXTBLOCK_MIN_TIP, NEXTBLOCK_REGIONS, NEXTBLOCK_TIP,
-    NextBlockConfirmSetting, NextBlockEndpoint, NextBlockRegionsType, PING_DURATION_SEC, Tips,
-    TransactionBuilder, build_v0_bs64, format_elapsed, ping_all, ping_one, simulate,
-};
+use crate::*;
 
 #[derive(Debug)]
 pub struct NextBlock {
@@ -30,6 +28,18 @@ impl TransactionBuilder for NextBlock {
         alt: Vec<AddressLookupTableAccount>,
     ) -> String {
         build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix, alt)
+    }
+
+    fn build_v0_bs58(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+        alt: Vec<AddressLookupTableAccount>,
+    ) -> String {
+        build_v0_bs58(ixs, fee_payer, signers, recent_blockhash, nonce_ix, alt)
     }
 
     fn simulate(

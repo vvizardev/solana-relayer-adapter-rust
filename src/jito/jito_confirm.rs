@@ -8,11 +8,7 @@ use solana_sdk::{
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
-use crate::{
-    HEALTH_CHECK_SEC, JITO_MIN_TIP, JITO_REGIONS, JITO_TIP, JitoEndpoint, JitoRegionsType,
-    JsonRpcResponse, PING_DURATION_SEC, Tips, TransactionBuilder, build_v0_bs64, format_elapsed,
-    ping_all, ping_one, simulate,
-};
+use crate::*;
 
 #[derive(Debug)]
 pub struct Jito {
@@ -32,6 +28,18 @@ impl TransactionBuilder for Jito {
         alt: Vec<AddressLookupTableAccount>,
     ) -> String {
         build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix, alt)
+    }
+    
+    fn build_v0_bs58(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+        alt: Vec<AddressLookupTableAccount>,
+    ) -> String {
+        build_v0_bs58(ixs, fee_payer, signers, recent_blockhash, nonce_ix, alt)
     }
 
     fn simulate(
@@ -266,7 +274,7 @@ impl Jito {
             "jsonrpc": "2.0",
             "id": 1,
             "method": "sendBundle",
-            "params": [encoded_txs, {"encoding": "base64"}]
+            "params": [encoded_txs]
         });
 
         let response = self.client.post(url).json(&payload).send().await?;

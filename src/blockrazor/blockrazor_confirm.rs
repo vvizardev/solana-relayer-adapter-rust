@@ -11,11 +11,7 @@ use solana_sdk::{
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
-use crate::{
-    BLOCKRAZOR_MIN_TIP, BLOCKRAZOR_TIP, BRAZOR_REGIONS, BRazorEndpoint, BRazorRegionsType,
-    BlockRazorResponse, HEALTH_CHECK_SEC, HealthResponse, JsonRpcResponse, PING_DURATION_SEC, Tips,
-    TransactionBuilder, build_v0_bs64, format_elapsed, ping_all, ping_one, simulate,
-};
+use crate::*;
 
 #[derive(Debug)]
 pub struct BlockRazor {
@@ -35,6 +31,18 @@ impl TransactionBuilder for BlockRazor {
         alt: Vec<AddressLookupTableAccount>,
     ) -> String {
         build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix, alt)
+    }
+
+    fn build_v0_bs58(
+        &self,
+        ixs: Vec<Instruction>,
+        fee_payer: &Pubkey,
+        signers: &Vec<&Keypair>,
+        recent_blockhash: Hash,
+        nonce_ix: Option<Instruction>,
+        alt: Vec<AddressLookupTableAccount>,
+    ) -> String {
+        build_v0_bs58(ixs, fee_payer, signers, recent_blockhash, nonce_ix, alt)
     }
 
     fn simulate(
