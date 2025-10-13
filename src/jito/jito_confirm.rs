@@ -29,7 +29,7 @@ impl TransactionBuilder for Jito {
     ) -> String {
         build_v0_bs64(ixs, fee_payer, signers, recent_blockhash, nonce_ix, alt)
     }
-    
+
     fn build_v0_bs58(
         &self,
         ixs: Vec<Instruction>,
@@ -234,18 +234,19 @@ impl Jito {
             "params": [encoded_tx, {"encoding": "base64"}]
         });
 
-        let response = self.client.post(url).json(&payload).send().await?;
+        let mut req = self.client.post(url).json(&payload);
 
+        if let Some(auth_key) = &self.auth_key {
+            req = req.header("x-jito-auth", auth_key);
+        }
+
+        let response = req.send().await?;
         let body = response.text().await?;
         println!("Raw response body:\n{:#?}", body);
 
-        // Parse and return response body as JSON
         let response: JsonRpcResponse = serde_json::from_str(&body)?;
 
-        // ################### TIME LOG ###################
-
         let elapsed = start.elapsed();
-
         println!(
             "Transaction (Jito) submission took: {}",
             format_elapsed(elapsed)
@@ -262,12 +263,10 @@ impl Jito {
                 "{}/api/v1/bundles?uuid={}",
                 self.endpoint.submit_endpoint, auth_key
             )
+        } else if self.endpoint.relayer_name == "LilJit" {
+            format!("{}", self.endpoint.submit_endpoint)
         } else {
-            if self.endpoint.relayer_name == "LilJit" {
-                format!("{}", self.endpoint.submit_endpoint)
-            } else {
-                format!("{}/api/v1/bundles", self.endpoint.submit_endpoint)
-            }
+            format!("{}/api/v1/bundles", self.endpoint.submit_endpoint)
         };
 
         let payload = json!({
@@ -277,17 +276,19 @@ impl Jito {
             "params": [encoded_txs]
         });
 
-        let response = self.client.post(url).json(&payload).send().await?;
+        let mut req = self.client.post(url).json(&payload);
+
+        if let Some(auth_key) = &self.auth_key {
+            req = req.header("x-jito-auth", auth_key);
+        }
+
+        let response = req.send().await?;
         let body = response.text().await?;
         println!("Raw response body:\n{}", body);
 
-        // Parse and return response body as JSON
         let response: JsonRpcResponse = serde_json::from_str(&body)?;
 
-        // ################### TIME LOG ###################
-
         let elapsed = start.elapsed();
-
         println!("Transaction submission took: {}", format_elapsed(elapsed));
 
         Ok(response)
