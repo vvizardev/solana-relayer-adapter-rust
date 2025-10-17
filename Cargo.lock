@@ -4294,7 +4294,7 @@ dependencies = [
 
 [[package]]
 name = "solana-relayer-adapter-rust"
-version = "3.2.3"
+version = "3.3.0"
 dependencies = [
  "anyhow",
  "bincode",

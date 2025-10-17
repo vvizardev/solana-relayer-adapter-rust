@@ -1,6 +1,6 @@
 [package]
 name = "solana-relayer-adapter-rust"
-version = "3.2.3"
+version = "3.3.0"
 edition = "2024"
 authors = ["nakao95911@gmail.com"]
 license = "Apache-2.0"
