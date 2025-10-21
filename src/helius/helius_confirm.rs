@@ -161,7 +161,7 @@ impl Helius {
         });
     }
 
-    pub fn add_tip_ix(&self, tip_config: Tips) -> Vec<Instruction> {
+    pub fn add_tip_ix(&self, tip_config: Tips, swqos: bool) -> Vec<Instruction> {
         let mut ixs: Vec<Instruction> = Vec::new();
 
         if let Some(cu) = tip_config.cu {
@@ -176,7 +176,11 @@ impl Helius {
 
         ixs.extend(tip_config.pure_ix.clone());
 
-        let relayer_fee = tip_config.tip_sol_amount.max(HELIUS_MIN_TIP); // use `.max()` for clarity
+        let relayer_fee = if swqos {
+            tip_config.tip_sol_amount.max(HELIUS_SWQOS_MIN_TIP)
+        } else {
+            tip_config.tip_sol_amount.max(HELIUS_MIN_TIP)
+        };
 
         let recipient = Pubkey::from_str_const(HELIUS_TIP[tip_config.tip_addr_idx as usize]);
         let transfer_ix = system_instruction::transfer(
@@ -198,7 +202,7 @@ impl Helius {
             "jsonrpc": "2.0",
             "id": 1,
             "method": "sendTransaction",
-            "params": [encoded_tx, {"encoding": "base64"}]
+            "params": [encoded_tx, {"encoding": "base64", "skipPreflight": true}]
         });
 
         let response = self.client.post(url).json(&payload).send().await?;

@@ -2,6 +2,7 @@ use crate::HeliusEndpoint;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum HeliusRegionsType {
+    Global,
     Slc,
     Ewr,
     Lon,
@@ -64,5 +65,11 @@ pub const HELIUS_REGIONS: &[HeliusEndpoint] = &[
         "Helius-Tokyo",
         "http://tyo-sender.helius-rpc.com/fast",
         "tyo-sender.helius-rpc.com"
+    ),
+    helius_endpoint!(
+        Global,
+        "Helius-Global",
+        "http://sender.helius-rpc.com/fast",
+        "sender.helius-rpc.com"
     )
 ];

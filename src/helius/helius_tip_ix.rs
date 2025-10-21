@@ -12,3 +12,4 @@ pub const HELIUS_TIP: [&str; 10] = [
 ];
 
 pub const HELIUS_MIN_TIP: f64 = 0.001;
+pub const HELIUS_SWQOS_MIN_TIP: f64 = 0.000005;
