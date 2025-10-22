@@ -175,7 +175,11 @@ impl Astralane {
 
         ixs.extend(tip_config.pure_ix.clone());
 
-        let relayer_fee = tip_config.tip_sol_amount.max(ASTRA_IRIS_MIN_TIP); // use `.max()` for clarity
+        let relayer_fee = if self.endpoint.relayer == AstraRegionsType::Paladine {
+            tip_config.tip_sol_amount.max(ASTRA_PALADIN_MIN_TIP)
+        } else {
+            tip_config.tip_sol_amount.max(ASTRA_IRIS_MIN_TIP)
+        };
 
         let recipient = Pubkey::from_str_const(ASTRA_TIP[tip_config.tip_addr_idx as usize]);
         let transfer_ix = system_instruction::transfer(

@@ -7,14 +7,16 @@ pub enum AstraRegionsType {
     LAX,
     NY,
     Tokyo,
+    Limburg,
+    Paladine,
 }
 
 pub const ASTRA_REGIONS: &[AstraEndpoint] = &[
     AstraEndpoint {
         relayer: AstraRegionsType::LAX,
         relayer_name: "Astra-San Francisco",
-        submit_endpoint: "https://lax.gateway.astralane.io/iris?api-key=",
-        ping_endpoint: "lax.gateway.astralane.io",
+        submit_endpoint: "https://la.gateway.astralane.io/iris?api-key=",
+        ping_endpoint: "la.gateway.astralane.io",
     },
     AstraEndpoint {
         relayer: AstraRegionsType::Amsterdam,
@@ -39,5 +41,17 @@ pub const ASTRA_REGIONS: &[AstraEndpoint] = &[
         relayer_name: "Astra-Tokyo",
         submit_endpoint: "http://ny.gateway.astralane.io/iris?api-key=",
         ping_endpoint: "ny.gateway.astralane.io",
+    },
+    AstraEndpoint {
+        relayer: AstraRegionsType::Limburg,
+        relayer_name: "Astra-Limburg",
+        submit_endpoint: "http://lim.gateway.astralane.io/iris?api-key=",
+        ping_endpoint: "lim.gateway.astralane.io",
+    },
+    AstraEndpoint {
+        relayer: AstraRegionsType::Paladine,
+        relayer_name: "Astra-Paladine",
+        submit_endpoint: "http://paladin.astralane.io/api/palidators?api-key=",
+        ping_endpoint: "paladin.astralane.io",
     },
 ];

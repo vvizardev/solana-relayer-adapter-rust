@@ -9,5 +9,5 @@ pub const ASTRA_TIP: [&str; 8] = [
     "astrawVNP4xDBKT7rAdxrLYiTSTdqtUr63fSMduivXK"
 ];
 
-pub const ASTRA_IRIS_MIN_TIP: f64 = 0.0001;
-pub const ASTRA_PALADIN_MIN_TIP: f64 = 0.001;
+pub const ASTRA_IRIS_MIN_TIP: f64 = 0.00001;
+pub const ASTRA_PALADIN_MIN_TIP: f64 = 0.0001;
