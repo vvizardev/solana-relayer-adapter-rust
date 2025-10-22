@@ -212,7 +212,6 @@ impl ZeroSlot {
         let response = client
             .post(url)
             .header("Content-Type", "application/json")
-            .header("api-key", self.auth_key.to_string())
             .json(&payload)
             .send()
             .await?;
