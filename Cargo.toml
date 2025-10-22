@@ -21,6 +21,7 @@ dotenvy = "0.15.7"
 bincode = "1.3.3"
 bs64 = "0.1.2"
 serde = { version = "1.0.219", features = ["derive"] }
+once_cell = "1.19.0"
 
 [lib]
 name = "solana_relayer_adapter_rust"

@@ -196,8 +196,6 @@ impl Helius {
     pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<JsonRpcResponse> {
         let start = Instant::now();
 
-        let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
-
         let payload = json!({
             "jsonrpc": "2.0",
             "id": 1,
@@ -205,7 +203,7 @@ impl Helius {
             "params": [encoded_tx, {"encoding": "base64", "skipPreflight": true}]
         });
 
-        let response = self.client.post(url).json(&payload).send().await?;
+        let response = self.client.post(self.endpoint.submit_endpoint).json(&payload).send().await?;
 
         let body = response.text().await?;
         println!("Raw response body:\n{}", body);

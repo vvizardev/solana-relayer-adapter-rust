@@ -195,23 +195,33 @@ impl Astralane {
     pub async fn send_transaction(&self, encoded_tx: &str) -> anyhow::Result<serde_json::Value> {
         let start = Instant::now();
 
-        let url = format!("{}{}", self.endpoint.submit_endpoint, self.auth_key);
+        let url = format!("{}", self.endpoint.submit_endpoint);
 
         let payload = json!({
             "jsonrpc": "2.0",
             "id": 1,
             "method": "sendTransaction",
-            "params": [encoded_tx, {"encoding": "base64"}]
+            "params": [encoded_tx, {"encoding": "base64",  "skipPreflight": true}]
         });
 
-        let response = self.client.post(url).json(&payload).send().await?;
+        let response = self
+            .client
+            .post(url)
+            .header("api_key", &self.auth_key)
+            .json(&payload)
+            .send()
+            .await?;
 
-        let data: serde_json::Value = response.json().await?;
+        // ✅ Log the raw text before parsing
+        let raw_text = response.text().await?;
+        println!("Raw response text: {}", raw_text);
+
+        // ✅ Try to parse JSON (gracefully handle parse errors)
+        let data: serde_json::Value = serde_json::from_str(&raw_text)
+            .unwrap_or_else(|_| json!({"error": "Failed to parse JSON", "raw": raw_text}));
 
         // ################### TIME LOG ###################
-
         let elapsed = start.elapsed();
-
         println!(
             "Transaction (Astra) submission took: {}",
             format_elapsed(elapsed)

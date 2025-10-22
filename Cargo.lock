@@ -4301,6 +4301,7 @@ dependencies = [
  "bs64",
  "dotenvy",
  "futures",
+ "once_cell",
  "ping",
  "reqwest",
  "serde",

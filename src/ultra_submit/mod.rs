@@ -1,53 +1,71 @@
 use crate::*;
-use solana_sdk::{hash::Hash, instruction::Instruction, signature::Keypair};
-use std::time::Instant;
-use tokio::task::JoinHandle;
+use once_cell::sync::Lazy;
 use serde_json::Value;
+use solana_sdk::{hash::Hash, instruction::Instruction, signature::Keypair};
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Instant;
+use std::time::{Duration, Instant as StdInstant};
+use tokio::sync::RwLock;
+use tokio::task::JoinHandle;
 
-/// Enhanced response parsing that handles various response formats
-fn parse_response_safely(body: &str) -> Result<JsonRpcResponse, String> {
-    // First try to parse as JSON-RPC response
-    if let Ok(response) = serde_json::from_str::<JsonRpcResponse>(body) {
-        return Ok(response);
-    }
-    
-    // Check if it's an HTML error page
-    if body.contains("<html>") || body.contains("<body>") {
-        return Err("HTML error page received (likely 403/404)".to_string());
-    }
-    
-    // Check if it's a simple error object
-    if let Ok(error_obj) = serde_json::from_str::<Value>(body) {
-        if let Some(error) = error_obj.get("error") {
-            return Err(format!("Service error: {}", error));
-        }
-        if let Some(message) = error_obj.get("message") {
-            return Err(format!("Service message: {}", message));
-        }
-    }
-    
-    // Try to extract any meaningful error information
-    if body.contains("UNAUTHORIZED") {
-        return Err("Authentication failed - check API key".to_string());
-    }
-    
-    if body.contains("not authorised") {
-        return Err("Not authorized - API key may be invalid or expired".to_string());
-    }
-    
-    if body.contains("api-key does not exist") {
-        return Err("API key does not exist - check configuration".to_string());
-    }
-    
-    Err(format!("Failed to parse response: {}", body))
+/// Service health tracking for circuit breaker pattern
+#[derive(Debug, Clone)]
+struct ServiceHealth {
+    consecutive_failures: u32,
+    last_failure: Option<StdInstant>,
+    is_circuit_open: bool,
+    circuit_open_time: Option<StdInstant>,
 }
 
-/// Service health check to avoid submitting to failing services
-async fn check_service_health(service_name: &str, client: &dyn std::fmt::Debug) -> bool {
-    // This is a placeholder - in a real implementation, you'd ping each service
-    // For now, we'll assume all services are healthy
-    true
+impl Default for ServiceHealth {
+    fn default() -> Self {
+        Self {
+            consecutive_failures: 0,
+            last_failure: None,
+            is_circuit_open: false,
+            circuit_open_time: None,
+        }
+    }
+}
+
+impl ServiceHealth {
+    fn record_success(&mut self) {
+        self.consecutive_failures = 0;
+        self.is_circuit_open = false;
+        self.circuit_open_time = None;
+    }
+
+    fn record_failure(&mut self) {
+        self.consecutive_failures += 1;
+        self.last_failure = Some(StdInstant::now());
+
+        // Open circuit after 3 consecutive failures
+        if self.consecutive_failures >= 3 {
+            self.is_circuit_open = true;
+            self.circuit_open_time = Some(StdInstant::now());
+        }
+    }
+
+    fn should_attempt_request(&mut self) -> bool {
+        // If circuit is closed, allow requests
+        if !self.is_circuit_open {
+            return true;
+        }
+
+        // If circuit is open, check if enough time has passed to try again
+        if let Some(open_time) = self.circuit_open_time {
+            let elapsed = open_time.elapsed();
+            // Try again after 30 seconds
+            if elapsed >= Duration::from_secs(30) {
+                self.is_circuit_open = false;
+                self.circuit_open_time = None;
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 pub async fn ultra_submit(
@@ -71,6 +89,7 @@ pub async fn ultra_submit(
     if let Some(jito_client) = jito {
         for i in 0..retry_count {
             let client = jito_client;
+
             let ix = client.add_tip_ix(tx_info.clone());
             let tx = client.build_v0_bs64(
                 ix,
@@ -95,28 +114,30 @@ pub async fn ultra_submit(
                     Err(e) => {
                         let elapsed = start.elapsed();
                         let error_msg = format!("{}", e);
-                        
-                        // Enhanced error reporting
+
+                        // Enhanced error reporting with detailed analysis
+                        eprintln!(
+                            "[Jito #{}] ❌ Error after {:.2}ms: {}",
+                            i + 1,
+                            elapsed.as_secs_f64() * 1000.0,
+                            error_msg
+                        );
+
+                        // Provide specific guidance based on error type
                         if error_msg.contains("missing field `jsonrpc`") {
                             eprintln!(
-                                "[Jito #{}] ❌ JSON-RPC parsing error after {:.2}ms: Missing jsonrpc field - check service response format",
-                                i + 1,
-                                elapsed.as_secs_f64() * 1000.0
+                                "   💡 This service returned a response without the required 'jsonrpc' field"
                             );
                         } else if error_msg.contains("error decoding response body") {
                             eprintln!(
-                                "[Jito #{}] ❌ Response decoding error after {:.2}ms: Invalid response format - {}",
-                                i + 1,
-                                elapsed.as_secs_f64() * 1000.0,
-                                error_msg
+                                "   💡 The service returned malformed JSON - check service status"
                             );
-                        } else {
-                            eprintln!(
-                                "[Jito #{}] ❌ Error after {:.2}ms: {}",
-                                i + 1,
-                                elapsed.as_secs_f64() * 1000.0,
-                                error_msg
-                            );
+                        } else if error_msg.contains("expected value") {
+                            eprintln!("   💡 Invalid JSON structure received from service");
+                        } else if error_msg.contains("UNAUTHORIZED") {
+                            eprintln!("   💡 Authentication failed - verify API key is valid");
+                        } else if error_msg.contains("not authorised") {
+                            eprintln!("   💡 API key may be invalid or expired");
                         }
                     }
                 }
@@ -152,12 +173,32 @@ pub async fn ultra_submit(
                     }
                     Err(e) => {
                         let elapsed = start.elapsed();
+                        let error_msg = format!("{}", e);
+
+                        // Enhanced error reporting with detailed analysis
                         eprintln!(
                             "[LilJit #{}] ❌ Error after {:.2}ms: {}",
                             i + 1,
                             elapsed.as_secs_f64() * 1000.0,
-                            e
+                            error_msg
                         );
+
+                        // Provide specific guidance based on error type
+                        if error_msg.contains("missing field `jsonrpc`") {
+                            eprintln!(
+                                "   💡 This service returned a response without the required 'jsonrpc' field"
+                            );
+                        } else if error_msg.contains("error decoding response body") {
+                            eprintln!(
+                                "   💡 The service returned malformed JSON - check service status"
+                            );
+                        } else if error_msg.contains("expected value") {
+                            eprintln!("   💡 Invalid JSON structure received from service");
+                        } else if error_msg.contains("UNAUTHORIZED") {
+                            eprintln!("   💡 Authentication failed - verify API key is valid");
+                        } else if error_msg.contains("not authorised") {
+                            eprintln!("   💡 API key may be invalid or expired");
+                        }
                     }
                 }
             });
@@ -192,12 +233,32 @@ pub async fn ultra_submit(
                     }
                     Err(e) => {
                         let elapsed = start.elapsed();
+                        let error_msg = format!("{}", e);
+
+                        // Enhanced error reporting with detailed analysis
                         eprintln!(
                             "[Astralane #{}] ❌ Error after {:.2}ms: {}",
                             i + 1,
                             elapsed.as_secs_f64() * 1000.0,
-                            e
+                            error_msg
                         );
+
+                        // Provide specific guidance based on error type
+                        if error_msg.contains("missing field `jsonrpc`") {
+                            eprintln!(
+                                "   💡 This service returned a response without the required 'jsonrpc' field"
+                            );
+                        } else if error_msg.contains("error decoding response body") {
+                            eprintln!(
+                                "   💡 The service returned malformed JSON - check service status"
+                            );
+                        } else if error_msg.contains("expected value") {
+                            eprintln!("   💡 Invalid JSON structure received from service");
+                        } else if error_msg.contains("UNAUTHORIZED") {
+                            eprintln!("   💡 Authentication failed - verify API key is valid");
+                        } else if error_msg.contains("not authorised") {
+                            eprintln!("   💡 API key may be invalid or expired");
+                        }
                     }
                 }
             });
