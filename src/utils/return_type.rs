@@ -28,5 +28,30 @@ pub struct SimpleErrorResponse {
 #[derive(Debug, Deserialize)]
 pub struct BlockRazorResponse {
     pub signature: String,
-    pub error: String,
+    #[serde(default)]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BloxRouteResponse {
+    pub signature: String,
+    #[serde(default)]
+    pub error: Option<String>,
+}
+
+
+#[derive(Deserialize, Debug)]
+pub struct BloxRouteBatchResponse {
+    pub transactions: Vec<BxRouteBatchSubmitTx>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct BxRouteBatchSubmitTx {
+    pub signature: String,
+
+    #[serde(default)]
+    pub error: Option<String>,
+
+    #[serde(default)]
+    pub submitted: bool,
 }

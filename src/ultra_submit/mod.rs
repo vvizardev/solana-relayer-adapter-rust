@@ -81,24 +81,32 @@ pub async fn ultra_submit(
     nextblock: Option<&'static NextBlock>,
     zeroslot: Option<&'static ZeroSlot>,
     nozomi: Option<&'static Nozomi>,
+    blockrazor: Option<&'static BlockRazor>,
+    bloxroute: Option<&'static BloxRoute>,
 ) {
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
     let global_start = Instant::now();
 
+    println!("🕐 Starting ultra_submit process...");
+
     // Submit via Jito
+    let jito_start = Instant::now();
     if let Some(jito_client) = jito {
         for i in 0..retry_count {
             let client = jito_client;
+            let tx_info_clone = tx_info.clone();
+            let nonce_ix_clone = nonce_ix.clone();
 
-            let ix = client.add_tip_ix(tx_info.clone());
+            let ix = client.add_tip_ix(tx_info_clone);
             let tx = client.build_v0_bs64(
                 ix,
                 &tx_info.payer,
                 signers,
                 recent_blockhash,
-                Some(nonce_ix.clone()),
+                Some(nonce_ix_clone),
                 vec![],
             );
+
             let handle = tokio::spawn(async move {
                 let start = Instant::now();
                 match client.send_transaction(&tx).await {
@@ -145,8 +153,14 @@ pub async fn ultra_submit(
             handles.push(handle);
         }
     }
+    let jito_elapsed = jito_start.elapsed();
+    println!(
+        "🕐 Jito preparation took: {:.2}ms",
+        jito_elapsed.as_secs_f64() * 1000.0
+    );
 
     // Submit via LilJit (second Jito instance)
+    let liljit_start = Instant::now();
     if let Some(liljit_client) = liljit {
         for i in 0..retry_count {
             let client = liljit_client;
@@ -205,8 +219,14 @@ pub async fn ultra_submit(
             handles.push(handle);
         }
     }
+    let liljit_elapsed = liljit_start.elapsed();
+    println!(
+        "🕐 LilJit preparation took: {:.2}ms",
+        liljit_elapsed.as_secs_f64() * 1000.0
+    );
 
     // Submit via Astralane
+    let astralane_start = Instant::now();
     if let Some(astralane_client) = astralance {
         for i in 0..retry_count {
             let client = astralane_client;
@@ -265,8 +285,14 @@ pub async fn ultra_submit(
             handles.push(handle);
         }
     }
+    let astralane_elapsed = astralane_start.elapsed();
+    println!(
+        "🕐 Astralane preparation took: {:.2}ms",
+        astralane_elapsed.as_secs_f64() * 1000.0
+    );
 
     // Submit via Helius
+    let helius_start = Instant::now();
     if let Some(helius_client) = helius {
         for i in 0..retry_count {
             let client = helius_client;
@@ -305,8 +331,14 @@ pub async fn ultra_submit(
             handles.push(handle);
         }
     }
+    let helius_elapsed = helius_start.elapsed();
+    println!(
+        "🕐 Helius preparation took: {:.2}ms",
+        helius_elapsed.as_secs_f64() * 1000.0
+    );
 
     // Submit via NextBlock
+    let nextblock_start = Instant::now();
     if let Some(nextblock_client) = nextblock {
         for i in 0..retry_count {
             let client = nextblock_client;
@@ -347,8 +379,14 @@ pub async fn ultra_submit(
             handles.push(handle);
         }
     }
+    let nextblock_elapsed = nextblock_start.elapsed();
+    println!(
+        "🕐 NextBlock preparation took: {:.2}ms",
+        nextblock_elapsed.as_secs_f64() * 1000.0
+    );
 
     // Submit via ZeroSlot
+    let zeroslot_start = Instant::now();
     if let Some(zeroslot_client) = zeroslot {
         for i in 0..retry_count {
             let client = zeroslot_client;
@@ -387,7 +425,13 @@ pub async fn ultra_submit(
             handles.push(handle);
         }
     }
+    let zeroslot_elapsed = zeroslot_start.elapsed();
+    println!(
+        "🕐 ZeroSlot preparation took: {:.2}ms",
+        zeroslot_elapsed.as_secs_f64() * 1000.0
+    );
 
+    let nozomi_start = Instant::now();
     if let Some(nozomi_client) = nozomi {
         for i in 0..retry_count {
             let client = nozomi_client;
@@ -426,20 +470,142 @@ pub async fn ultra_submit(
             handles.push(handle);
         }
     }
+    let nozomi_elapsed = nozomi_start.elapsed();
+    println!(
+        "🕐 Nozomi preparation took: {:.2}ms",
+        nozomi_elapsed.as_secs_f64() * 1000.0
+    );
+
+    let blockrazor_start = Instant::now();
+    if let Some(blockrazor_client) = blockrazor {
+        for i in 0..retry_count {
+            let client = blockrazor_client;
+            let ix = client.add_tip_ix(tx_info.clone());
+            let tx = client.build_v0_bs64(
+                ix,
+                &tx_info.payer,
+                signers,
+                recent_blockhash,
+                Some(nonce_ix.clone()),
+                vec![],
+            );
+            let handle = tokio::spawn(async move {
+                let start = Instant::now();
+                match client.send_transaction(&tx).await {
+                    Ok(response) => {
+                        let elapsed = start.elapsed();
+                        println!(
+                            "[Blockrazor #{}] ✅ Success in {:.2}ms: {:#?}",
+                            i + 1,
+                            elapsed.as_secs_f64() * 1000.0,
+                            response
+                        );
+                    }
+                    Err(e) => {
+                        let elapsed = start.elapsed();
+                        eprintln!(
+                            "[Blockrazor #{}] ❌ Error after {:.2}ms: {}",
+                            i + 1,
+                            elapsed.as_secs_f64() * 1000.0,
+                            e
+                        );
+                    }
+                }
+            });
+            handles.push(handle);
+        }
+    }
+    let blockrazor_elapsed = blockrazor_start.elapsed();
+    println!(
+        "🕐 Blockrazor preparation took: {:.2}ms",
+        blockrazor_elapsed.as_secs_f64() * 1000.0
+    );
+
+    let bloxroute_start = Instant::now();
+    if let Some(bloxroute_client) = bloxroute {
+        for i in 0..retry_count {
+            let client = bloxroute_client;
+            let ix = client.add_tip_ix(tx_info.clone());
+            let tx = client.build_v0_bs64(
+                ix,
+                &tx_info.payer,
+                signers,
+                recent_blockhash,
+                Some(nonce_ix.clone()),
+                vec![],
+            );
+            let handle = tokio::spawn(async move {
+                let start = Instant::now();
+                match client.send_transaction(&tx).await {
+                    Ok(response) => {
+                        let elapsed = start.elapsed();
+                        println!(
+                            "[Bloxroute #{}] ✅ Success in {:.2}ms: {:#?}",
+                            i + 1,
+                            elapsed.as_secs_f64() * 1000.0,
+                            response
+                        );
+                    }
+                    Err(e) => {
+                        let elapsed = start.elapsed();
+                        eprintln!(
+                            "[Bloxroute #{}] ❌ Error after {:.2}ms: {}",
+                            i + 1,
+                            elapsed.as_secs_f64() * 1000.0,
+                            e
+                        );
+                    }
+                }
+            });
+            handles.push(handle);
+        }
+    }
+    let bloxroute_elapsed = bloxroute_start.elapsed();
+    println!(
+        "🕐 Bloxroute preparation took: {:.2}ms",
+        bloxroute_elapsed.as_secs_f64() * 1000.0
+    );
+
+    // Calculate total preparation time
+    let total_prep_elapsed = global_start.elapsed();
+    println!(
+        "🕐 Total preparation phase took: {:.2}ms",
+        total_prep_elapsed.as_secs_f64() * 1000.0
+    );
 
     // Wait for all submissions to complete
+    let execution_start = Instant::now();
     println!(
         "\n🚀 Launched {} simultaneous submissions (all services × {})",
         handles.len(),
         retry_count
     );
 
-    // All tasks are already running in parallel - just wait for them to finish
-    futures::future::join_all(handles).await;
+    // Execute all tasks truly simultaneously - no sequential waiting
+    // Use join_all to ensure maximum parallelism
+    let _results = futures::future::join_all(handles).await;
 
+    let execution_elapsed = execution_start.elapsed();
     let total_elapsed = global_start.elapsed();
+
+    println!(
+        "🕐 Execution phase took: {:.2}ms",
+        execution_elapsed.as_secs_f64() * 1000.0
+    );
     println!(
         "\n✅ All submissions completed in {:.2}ms (wall time)",
         total_elapsed.as_secs_f64() * 1000.0
     );
+
+    // Performance summary
+    println!("\n📊 Performance Summary:");
+    println!(
+        "   • Preparation: {:.2}ms",
+        total_prep_elapsed.as_secs_f64() * 1000.0
+    );
+    println!(
+        "   • Execution: {:.2}ms",
+        execution_elapsed.as_secs_f64() * 1000.0
+    );
+    println!("   • Total: {:.2}ms", total_elapsed.as_secs_f64() * 1000.0);
 }
