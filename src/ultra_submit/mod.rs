@@ -1,6 +1,7 @@
 use crate::*;
 use once_cell::sync::Lazy;
 use serde_json::Value;
+use solana_sdk::message::AddressLookupTableAccount;
 use solana_sdk::{hash::Hash, instruction::Instruction, signature::Keypair};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -9,70 +10,12 @@ use std::time::{Duration, Instant as StdInstant};
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
 
-/// Service health tracking for circuit breaker pattern
-#[derive(Debug, Clone)]
-struct ServiceHealth {
-    consecutive_failures: u32,
-    last_failure: Option<StdInstant>,
-    is_circuit_open: bool,
-    circuit_open_time: Option<StdInstant>,
-}
-
-impl Default for ServiceHealth {
-    fn default() -> Self {
-        Self {
-            consecutive_failures: 0,
-            last_failure: None,
-            is_circuit_open: false,
-            circuit_open_time: None,
-        }
-    }
-}
-
-impl ServiceHealth {
-    fn record_success(&mut self) {
-        self.consecutive_failures = 0;
-        self.is_circuit_open = false;
-        self.circuit_open_time = None;
-    }
-
-    fn record_failure(&mut self) {
-        self.consecutive_failures += 1;
-        self.last_failure = Some(StdInstant::now());
-
-        // Open circuit after 3 consecutive failures
-        if self.consecutive_failures >= 3 {
-            self.is_circuit_open = true;
-            self.circuit_open_time = Some(StdInstant::now());
-        }
-    }
-
-    fn should_attempt_request(&mut self) -> bool {
-        // If circuit is closed, allow requests
-        if !self.is_circuit_open {
-            return true;
-        }
-
-        // If circuit is open, check if enough time has passed to try again
-        if let Some(open_time) = self.circuit_open_time {
-            let elapsed = open_time.elapsed();
-            // Try again after 30 seconds
-            if elapsed >= Duration::from_secs(30) {
-                self.is_circuit_open = false;
-                self.circuit_open_time = None;
-                return true;
-            }
-        }
-
-        false
-    }
-}
-
 pub async fn ultra_submit(
     tx_info: Tips,
     signers: &Vec<&Keypair>,
     recent_blockhash: Hash,
     nonce_ix: Instruction,
+    alt: Vec<AddressLookupTableAccount>,
     retry_count: u32,
     jito: Option<&'static Jito>,
     liljit: Option<&'static Jito>,
@@ -104,7 +47,7 @@ pub async fn ultra_submit(
                 signers,
                 recent_blockhash,
                 Some(nonce_ix_clone),
-                vec![],
+                alt.clone()
             );
 
             let handle = tokio::spawn(async move {
@@ -171,7 +114,7 @@ pub async fn ultra_submit(
                 signers,
                 recent_blockhash,
                 Some(nonce_ix.clone()),
-                vec![],
+                alt.clone()
             );
             let handle = tokio::spawn(async move {
                 let start = Instant::now();
@@ -237,7 +180,7 @@ pub async fn ultra_submit(
                 signers,
                 recent_blockhash,
                 Some(nonce_ix.clone()),
-                vec![],
+                alt.clone()
             );
             let handle = tokio::spawn(async move {
                 let start = Instant::now();
@@ -303,7 +246,7 @@ pub async fn ultra_submit(
                 signers,
                 recent_blockhash,
                 Some(nonce_ix.clone()),
-                vec![],
+                alt.clone()
             );
             let handle = tokio::spawn(async move {
                 let start = Instant::now();
@@ -350,7 +293,7 @@ pub async fn ultra_submit(
                 signers,
                 recent_blockhash,
                 Some(nonce_ix.clone()),
-                vec![],
+                alt.clone()
             );
 
             let handle = tokio::spawn(async move {
@@ -397,7 +340,7 @@ pub async fn ultra_submit(
                 signers,
                 recent_blockhash,
                 Some(nonce_ix.clone()),
-                vec![],
+                alt.clone()
             );
             let handle = tokio::spawn(async move {
                 let start = Instant::now();
@@ -442,7 +385,7 @@ pub async fn ultra_submit(
                 signers,
                 recent_blockhash,
                 Some(nonce_ix.clone()),
-                vec![],
+                alt.clone()
             );
             let handle = tokio::spawn(async move {
                 let start = Instant::now();
@@ -487,7 +430,7 @@ pub async fn ultra_submit(
                 signers,
                 recent_blockhash,
                 Some(nonce_ix.clone()),
-                vec![],
+                alt.clone()
             );
             let handle = tokio::spawn(async move {
                 let start = Instant::now();
@@ -532,7 +475,7 @@ pub async fn ultra_submit(
                 signers,
                 recent_blockhash,
                 Some(nonce_ix.clone()),
-                vec![],
+                alt.clone()
             );
             let handle = tokio::spawn(async move {
                 let start = Instant::now();
