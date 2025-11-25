@@ -11,5 +11,5 @@ pub const HELIUS_TIP: [&str; 10] = [
     "4TQLFNWK8AovT1gFvda5jfw2oJeRMKEmw7aH6MGBJ3or",
 ];
 
-pub const HELIUS_MIN_TIP: f64 = 0.001;
+pub const HELIUS_MIN_TIP: f64 = 0.0002;
 pub const HELIUS_SWQOS_MIN_TIP: f64 = 0.000005;
