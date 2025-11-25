@@ -200,7 +200,7 @@ impl Helius {
             "jsonrpc": "2.0",
             "id": 1,
             "method": "sendTransaction",
-            "params": [encoded_tx, {"encoding": "base64", "skipPreflight": true}]
+            "params": [encoded_tx, {"encoding": "base64", "skipPreflight": true, "maxRetries": 0 }]
         });
 
         let response = self.client.post(self.endpoint.submit_endpoint).json(&payload).send().await?;
